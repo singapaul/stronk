@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Typecheck & test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc --noEmit
+      - run: bun test
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: stronk:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Boot the image and hit /health
+        run: |
+          docker run -d --name stronk -p 3000:3000 \
+            -e BASIC_AUTH_USER=ci -e BASIC_AUTH_PASS=ci \
+            -e MCP_TOKEN=$(openssl rand -hex 32) -e MCP_PATH_TOKEN=$(openssl rand -hex 32) \
+            stronk:ci
+          for i in $(seq 1 30); do
+            if curl -fsS localhost:3000/health; then echo; break; fi
+            sleep 1
+          done
+          curl -fsS -u ci:ci "localhost:3000/api/exercises?q=squat&limit=1" | grep -q Barbell_Squat
+          docker exec stronk which litestream sqlite3
+      - name: Container logs
+        if: always()
+        run: docker logs stronk || true
