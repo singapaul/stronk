@@ -5,6 +5,7 @@ import type { DB } from "./db.ts";
 import type { Env } from "./env.ts";
 import { AppError } from "./errors.ts";
 import { systemClock, type Clock } from "./services/dates.ts";
+import { exerciseRoutes } from "./routes/exercises.ts";
 
 export type AppDeps = { db: DB; env: Env; clock?: Clock };
 export type Ctx = { db: DB; clock: Clock };
@@ -20,6 +21,8 @@ export function createApp({ db, env, clock = systemClock }: AppDeps) {
   });
 
   app.get("/health", (c) => c.json({ ok: true }));
+
+  app.route("/api/exercises", exerciseRoutes);
 
   app.notFound((c) => c.json({ error: "Not found" }, 404));
   app.onError((err, c) => {
