@@ -10,7 +10,7 @@ if (applied.length) console.log(`Applied migrations: ${applied.join(", ")}`);
 const seeded = await seedIfEmpty(db);
 if (seeded) console.log(`Seeded ${seeded.inserted} exercises`);
 
-const app = createApp({ db, env });
+const { app } = createApp({ db, env, log: true });
 console.log(`Listening on :${env.PORT}`);
 
 export default { port: env.PORT, fetch: app.fetch };

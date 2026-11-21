@@ -63,3 +63,130 @@ export const ExercisePatch = CustomExerciseInput.partial()
   })
   .refine((p) => Object.keys(p).length > 0, "Nothing to update");
 export type ExercisePatch = z.infer<typeof ExercisePatch>;
+
+// ---------- Sets & workouts ----------
+// Plain objects (no .refine) so the shapes can be reused as MCP tool input schemas.
+// Cross-field rules (e.g. "reps, duration or distance") are enforced in services.
+
+const reps = z.number().int().min(0).max(1000);
+const weightKg = z.number().min(-200).max(1000).describe("kg. Bodyweight exercises: added load (negative = assistance)");
+const rpe = z.number().min(1).max(10).multipleOf(0.5);
+const durationS = z.number().int().min(0).max(86_400);
+const distanceM = z.number().min(0).max(1_000_000);
+const notes = z.string().trim().max(1000);
+const id = z.coerce.number().int().positive();
+const DateTime = z.iso.datetime({ offset: true, error: "Expected an ISO datetime, e.g. 2026-03-10T18:00:00Z" });
+
+export const PerformedSetFields = {
+  type: SetType.optional().describe("warmup | normal (default) | failure | dropset"),
+  reps: reps.optional(),
+  weight_kg: weightKg.optional(),
+  duration_s: durationS.optional(),
+  distance_m: distanceM.optional(),
+  rpe: rpe.optional(),
+  notes: notes.optional(),
+};
+export const PerformedSet = z.object(PerformedSetFields);
+export type PerformedSet = z.infer<typeof PerformedSet>;
+
+export const LogSetShape = {
+  exercise_id: z.string().min(1).describe("Exact exercise id from search_exercises"),
+  ...PerformedSetFields,
+  workout_id: id.optional().describe("Defaults to the workout for `date`"),
+  date: IsoDate.optional().describe("Training day YYYY-MM-DD; defaults to today (Europe/London, day rolls over at 04:00)"),
+};
+export const LogSetInput = z.object(LogSetShape);
+export type LogSetInput = z.infer<typeof LogSetInput>;
+
+export const BlockFields = {
+  notes: notes.optional(),
+  superset_group: z.number().int().min(1).max(50).optional().describe("Blocks sharing a number form a superset"),
+  rest_seconds: z.number().int().min(0).max(3600).optional(),
+};
+
+export const LogWorkoutShape = {
+  date: IsoDate.optional(),
+  name: z.string().trim().min(1).max(100).optional(),
+  notes: notes.optional(),
+  start_time: DateTime.optional(),
+  end_time: DateTime.optional(),
+  exercises: z
+    .array(z.object({ exercise_id: z.string().min(1), ...BlockFields, sets: z.array(PerformedSet).min(1).max(50) }))
+    .min(1)
+    .max(30),
+};
+export const LogWorkoutInput = z.object(LogWorkoutShape);
+export type LogWorkoutInput = z.infer<typeof LogWorkoutInput>;
+
+export const PlannedSetFields = {
+  type: SetType.optional(),
+  reps: reps.optional().describe("Exact target reps (shorthand for reps_min = reps_max)"),
+  reps_min: reps.optional(),
+  reps_max: reps.optional(),
+  weight_kg: weightKg.optional(),
+  rpe: rpe.optional(),
+  duration_s: durationS.optional(),
+  distance_m: distanceM.optional(),
+  notes: notes.optional(),
+};
+export const PlannedSet = z.object(PlannedSetFields);
+export type PlannedSet = z.infer<typeof PlannedSet>;
+
+export const PlanBlock = z.object({ exercise_id: z.string().min(1), ...BlockFields, sets: z.array(PlannedSet).min(1).max(50) });
+export type PlanBlock = z.infer<typeof PlanBlock>;
+
+export const PlanSessionShape = {
+  date: IsoDate.optional(),
+  name: z.string().trim().min(1).max(100),
+  notes: notes.optional(),
+  exercises: z.array(PlanBlock).min(1).max(30),
+};
+export const PlanSessionInput = z.object(PlanSessionShape);
+export type PlanSessionInput = z.infer<typeof PlanSessionInput>;
+
+export const CompletePlannedSetShape = { set_id: id, ...PerformedSetFields };
+export const CompletePlannedSetInput = z.object(CompletePlannedSetShape);
+export type CompletePlannedSetInput = z.infer<typeof CompletePlannedSetInput>;
+
+/** null clears a field. */
+export const SetPatchFields = {
+  type: SetType.optional(),
+  reps: reps.nullable().optional(),
+  weight_kg: weightKg.nullable().optional(),
+  duration_s: durationS.nullable().optional(),
+  distance_m: distanceM.nullable().optional(),
+  rpe: rpe.nullable().optional(),
+  notes: notes.nullable().optional(),
+  target_reps_min: reps.nullable().optional(),
+  target_reps_max: reps.nullable().optional(),
+  target_weight_kg: weightKg.nullable().optional(),
+  target_rpe: rpe.nullable().optional(),
+};
+export const SetPatch = z.object(SetPatchFields);
+export type SetPatch = z.infer<typeof SetPatch>;
+
+export const WorkoutPatch = z.object({
+  date: IsoDate.optional(),
+  name: z.string().trim().min(1).max(100).nullable().optional(),
+  notes: notes.nullable().optional(),
+  start_time: DateTime.nullable().optional(),
+  end_time: DateTime.nullable().optional(),
+});
+export type WorkoutPatch = z.infer<typeof WorkoutPatch>;
+
+export const BlockPatch = z.object({
+  notes: notes.nullable().optional(),
+  superset_group: z.number().int().min(1).max(50).nullable().optional(),
+  rest_seconds: z.number().int().min(0).max(3600).nullable().optional(),
+  position: z.number().int().min(1).optional(),
+});
+export type BlockPatch = z.infer<typeof BlockPatch>;
+
+export const WorkoutListInput = z.object({
+  from: IsoDate.optional(),
+  to: IsoDate.optional(),
+  updated_since: DateTime.optional(),
+  limit: limit(20, 100),
+  offset,
+});
+export type WorkoutListInput = z.infer<typeof WorkoutListInput>;

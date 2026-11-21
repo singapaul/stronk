@@ -118,6 +118,8 @@ CREATE TABLE sets (
   target_reps_max INTEGER,
   target_weight_kg REAL,
   target_rpe REAL,
+  target_duration_s INTEGER,
+  target_distance_m REAL,
   notes TEXT,
   performed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),

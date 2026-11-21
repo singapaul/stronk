@@ -101,57 +101,55 @@ describe("REST /api/exercises", () => {
     return t;
   };
 
-  test("GET search with ?q", async () => {
+  test("requires auth", async () => {
     const { app } = setup();
-    const res = await app.request("/api/exercises?q=deadlift&limit=3");
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { total: number; results: unknown[] };
+    expect((await app.request("/api/exercises")).status).toBe(401);
+  });
+
+  test("GET search with ?q", async () => {
+    const { call } = setup();
+    const { status, body } = await call("GET", "/api/exercises?q=deadlift&limit=3");
+    expect(status).toBe(200);
     expect(body.results.length).toBe(3);
     expect(body.total).toBeGreaterThan(3);
   });
 
   test("GET detail builds image URLs", async () => {
-    const { app } = setup();
-    const res = await app.request("/api/exercises/Barbell_Bench_Press_-_Medium_Grip");
-    const body = (await res.json()) as { images: string[]; instructions: string[] };
-    expect(body.images[0]!.startsWith(IMAGE_BASE)).toBe(true);
+    const { call } = setup();
+    const { body } = await call("GET", "/api/exercises/Barbell_Bench_Press_-_Medium_Grip");
+    expect(body.images[0].startsWith(IMAGE_BASE)).toBe(true);
     expect(body.instructions.length).toBeGreaterThan(0);
   });
 
   test("unknown id 404s with suggestions", async () => {
-    const { app } = setup();
-    const res = await app.request("/api/exercises/Barbell_Bench_Pres");
-    expect(res.status).toBe(404);
-    const body = (await res.json()) as { details: { suggestions: { id: string }[] } };
+    const { call } = setup();
+    const { status, body } = await call("GET", "/api/exercises/Barbell_Bench_Pres");
+    expect(status).toBe(404);
     expect(body.details.suggestions.length).toBeGreaterThan(0);
     expect(body.details.suggestions.length).toBeLessThanOrEqual(5);
   });
 
   test("POST creates custom exercise; duplicate is 409", async () => {
-    const { app } = setup();
-    const body = { name: "Belt Squat", primary_muscles: ["Quadriceps"], equipment: "machine" };
-    const post = () => app.request("/api/exercises", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } });
-    const res = await post();
+    const { call } = setup();
+    const input = { name: "Belt Squat", primary_muscles: ["Quadriceps"], equipment: "machine" };
+    const res = await call("POST", "/api/exercises", input);
     expect(res.status).toBe(201);
-    const ex = (await res.json()) as { id: string; is_custom: boolean; primary_muscles: string[] };
-    expect(ex.id).toBe("custom_belt_squat");
-    expect(ex.is_custom).toBe(true);
-    expect(ex.primary_muscles).toEqual(["quadriceps"]);
-    expect((await post()).status).toBe(409);
+    expect(res.body.id).toBe("custom_belt_squat");
+    expect(res.body.is_custom).toBe(true);
+    expect(res.body.primary_muscles).toEqual(["quadriceps"]);
+    expect((await call("POST", "/api/exercises", input)).status).toBe(409);
   });
 
   test("POST validates input", async () => {
-    const { app } = setup();
-    const res = await app.request("/api/exercises", { method: "POST", body: JSON.stringify({ name: "x" }), headers: { "content-type": "application/json" } });
-    expect(res.status).toBe(400);
+    const { call } = setup();
+    expect((await call("POST", "/api/exercises", { name: "x" })).status).toBe(400);
   });
 
   test("PATCH on a library exercise only allows type", async () => {
-    const { app } = setup();
-    const patch = (b: object) => app.request("/api/exercises/Plank", { method: "PATCH", body: JSON.stringify(b), headers: { "content-type": "application/json" } });
-    expect((await patch({ name: "Nope" })).status).toBe(409);
-    const ok = await patch({ type: "weight_duration" });
+    const { call } = setup();
+    expect((await call("PATCH", "/api/exercises/Plank", { name: "Nope" })).status).toBe(409);
+    const ok = await call("PATCH", "/api/exercises/Plank", { type: "weight_duration" });
     expect(ok.status).toBe(200);
-    expect(((await ok.json()) as { type: string }).type).toBe("weight_duration");
+    expect(ok.body.type).toBe("weight_duration");
   });
 });

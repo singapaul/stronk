@@ -34,6 +34,28 @@ export function testApp(opts: { env?: Partial<Env>; clock?: ReturnType<typeof te
   const db = testDb();
   const clock = opts.clock ?? testClock();
   const env = { ...testEnv, ...opts.env };
-  const app = createApp({ db, env, clock });
-  return { app, db, clock, env };
+  const { app, ctx } = createApp({ db, env, clock });
+  const auth = { authorization: `Basic ${btoa(`${env.BASIC_AUTH_USER}:${env.BASIC_AUTH_PASS}`)}` };
+  /** Authenticated JSON request helper. */
+  const call = async <T = any>(method: string, path: string, body?: unknown) => {
+    const res = await app.request(path, {
+      method,
+      headers: { ...auth, ...(body !== undefined ? { "content-type": "application/json" } : {}) },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    return { status: res.status, body: (await res.json()) as T };
+  };
+  return { app, db, clock, env, ctx, auth, call };
+}
+
+/** A handful of exercises, enough for logging tests without seeding the full library. */
+export function seedMini(db: ReturnType<typeof testDb>) {
+  const ins = db.query(
+    "INSERT INTO exercises (id, name, type, equipment, primary_muscles, secondary_muscles) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+  ins.run("bench", "Barbell Bench Press", "weight_reps", "barbell", '["chest"]', '["triceps","shoulders"]');
+  ins.run("squat", "Barbell Squat", "weight_reps", "barbell", '["quadriceps"]', '["glutes","hamstrings"]');
+  ins.run("pullup", "Pullups", "bodyweight_reps", "body only", '["lats"]', '["biceps"]');
+  ins.run("assisted_dip", "Assisted Dip", "bodyweight_assisted_reps", "machine", '["triceps"]', '["chest"]');
+  ins.run("plank", "Plank", "duration", "body only", '["abdominals"]', "[]");
 }
