@@ -122,7 +122,20 @@ fly deploy
 fly scale count 1                           # SQLite = one writer: never run more than one machine
 ```
 
-TLS terminates at Fly (`force_https`). The image runs migrations and the seed on boot.
+TLS terminates at Fly (`force_https`). The image runs migrations and the seed on boot. `fly deploy` builds on Fly's remote builders, so a local Docker install isn't required.
+
+### Building the image locally
+
+```bash
+docker build -t stronk .
+```
+
+On a network that intercepts TLS (a corporate proxy such as Cisco Umbrella or Zscaler), `bun install` inside the build fails with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. Export the proxy's root CA and pass it as a build secret. It's used only for the install step and never stored in the image:
+
+```bash
+security find-certificate -a -p -c "Cisco Umbrella Root CA" /Library/Keychains/System.keychain > ~/proxy-ca.pem   # macOS
+docker build --secret id=ca,src=$HOME/proxy-ca.pem -t stronk .
+```
 
 On any other small VPS, run the same image behind Caddy for automatic HTTPS:
 

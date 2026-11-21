@@ -4,7 +4,12 @@
 FROM oven/bun:1.3.11 AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --production
+# Optional extra CA for networks that intercept TLS (e.g. a corporate proxy):
+#   docker build --secret id=ca,src=/path/to/root-ca.pem -t stronk .
+# It is mounted for this step only and never ends up in an image layer.
+RUN --mount=type=secret,id=ca,required=false \
+    if [ -s /run/secrets/ca ]; then CA="--cafile=/run/secrets/ca"; fi; \
+    bun install --frozen-lockfile --production $CA
 
 # --- litestream binary for continuous SQLite replication
 FROM litestream/litestream:0.5.18 AS litestream
