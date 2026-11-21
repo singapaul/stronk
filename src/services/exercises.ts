@@ -149,7 +149,17 @@ export function searchExercises(db: DB, input: ExerciseSearchInput): { total: nu
 
 /** Closest matches for an unknown id, so a caller (often Claude) can retry with a real one. */
 export function suggestExercises(db: DB, idOrName: string, limit = 5) {
-  return searchExercises(db, { query: idOrName, limit, offset: 0 }).results.map((r) => ({ id: r.id, name: r.name }));
+  const search = (query: string) =>
+    searchExercises(db, { query, limit, offset: 0 }).results.map((r) => ({ id: r.id, name: r.name }));
+  const exact = search(idOrName);
+  if (exact.length > 0) return exact;
+  // Typo tolerance: retry with each word cut to a 4-letter stem ("benchh" → "benc*").
+  const stems = idOrName
+    .replace(/_/g, " ")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length >= 4)
+    .map((w) => w.slice(0, 4));
+  return stems.length ? search(stems.join(" ")) : [];
 }
 
 export function findExerciseRow(db: DB, id: string): ExerciseRow | null {

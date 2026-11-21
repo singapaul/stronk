@@ -227,3 +227,14 @@ export const BodyweightListInput = z.object({
   limit: limit(30, 365),
 });
 export type BodyweightListInput = z.infer<typeof BodyweightListInput>;
+
+// ---------- Stats ----------
+
+export const HistoryInput = z.object({
+  limit: z.coerce.number().int().min(1).max(500).optional(),
+  from: IsoDate.optional(),
+  to: IsoDate.optional(),
+  format: z.enum(["sessions", "sets"]).default("sessions"),
+});
+export const SummaryInput = z.object({ from: IsoDate.optional(), to: IsoDate.optional() });
+export const RecentInput = z.object({ days: z.coerce.number().int().min(1).max(365).default(14) });
