@@ -1,0 +1,38 @@
+# Fly.io config. Change `app` to your app name (fly launch --no-deploy --copy-config will offer to).
+app = "stronk-gym"
+primary_region = "lhr"
+
+[build]
+
+[env]
+  DB_PATH = "/data/gym.db"
+  PORT = "3000"
+
+# SQLite lives on a volume. One volume = one machine: never scale this app beyond 1.
+[[mounts]]
+  source = "gym_data"
+  destination = "/data"
+  initial_size = "1gb"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 100
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
