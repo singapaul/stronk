@@ -113,16 +113,25 @@ How the derived values work:
 
 ## Deploy (Fly.io)
 
+Live at `https://stronk.fly.dev`. **Every push to `main` deploys automatically** once the typecheck, tests and Docker build pass (`.github/workflows/ci.yml`, `deploy` job). Fly builds the image on its remote builders and waits for the `/health` check, then CI runs a smoke test against the live URL. Deploys run one at a time, and a newer merge waits rather than cancelling a running deploy. To redeploy `main` without a code change, go to **Actions → CI → Run workflow**.
+
+TLS terminates at Fly (`force_https`). The image runs migrations and the seed on boot.
+
+### One-time setup (already done for `stronk`)
+
 ```bash
-fly launch --no-deploy --copy-config        # pick an app name; keep the volume mount
-fly volumes create gym_data --size 1 --region lhr
-fly secrets set BASIC_AUTH_USER=... BASIC_AUTH_PASS=... \
-  MCP_TOKEN=$(openssl rand -hex 32) MCP_PATH_TOKEN=$(openssl rand -hex 32)
-fly deploy
-fly scale count 1                           # SQLite = one writer: never run more than one machine
+brew install flyctl && fly auth login
+fly apps create <app>                                   # then set `app` in fly.toml
+fly volumes create gym_data --app <app> --size 1 --region lhr
+fly secrets set --app <app> --stage BASIC_AUTH_USER=... BASIC_AUTH_PASS=... MCP_TOKEN=... MCP_PATH_TOKEN=...
+fly secrets set --app <app> --stage LITESTREAM_BUCKET=... LITESTREAM_ENDPOINT=... \
+  LITESTREAM_ACCESS_KEY_ID=... LITESTREAM_SECRET_ACCESS_KEY=...   # optional, see Backups
+fly deploy --app <app> && fly scale count 1 --app <app>  # SQLite = one writer: never more than one machine
+fly tokens create deploy --app <app> --expiry 8760h      # app-scoped, 1 year
+gh secret set FLY_API_TOKEN --repo <owner>/<repo>        # paste the token when prompted
 ```
 
-TLS terminates at Fly (`force_https`). The image runs migrations and the seed on boot. `fly deploy` builds on Fly's remote builders, so a local Docker install isn't required.
+App secrets live in Fly, not GitHub. CI only holds the deploy token, which can deploy this one app and nothing else. When the token expires, deploys fail at the `flyctl deploy` step: create a new token and run `gh secret set` again. Fly warns that a single volume pins the app to one host. That's expected for SQLite, and recovery is covered under [Backups](#backups).
 
 ### Building the image locally
 
@@ -155,7 +164,7 @@ fly secrets set LITESTREAM_BUCKET=gym-backups \
   LITESTREAM_ACCESS_KEY_ID=... LITESTREAM_SECRET_ACCESS_KEY=...
 ```
 
-When `LITESTREAM_BUCKET` is set, `scripts/start.sh` restores the DB from R2 if the volume is empty, then runs the app under `litestream replicate`, which streams every change to R2 within seconds. To recover onto a fresh volume, just deploy: the restore happens automatically. To pull a copy locally:
+When `LITESTREAM_BUCKET` is set, `scripts/start.sh` restores the DB from R2 if the volume is empty, then runs the app under `litestream replicate`, which streams every change to R2 within seconds. To recover onto a fresh volume (for example if the volume's host fails), create a new volume (`fly volumes create gym_data --region lhr --size 1`) and redeploy: the restore happens automatically. To pull a copy locally:
 
 ```bash
 litestream restore -config litestream.yml -o ./restored.db /data/gym.db
