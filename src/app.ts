@@ -8,6 +8,8 @@ import type { Env } from "./env.ts";
 import { AppError } from "./errors.ts";
 import { exerciseRoutes } from "./routes/exercises.ts";
 import { setRoutes } from "./routes/sets.ts";
+import { routineRoutes } from "./routes/routines.ts";
+import { bodyweightRoutes } from "./routes/body.ts";
 import { blockRoutes, workoutRoutes } from "./routes/workouts.ts";
 import { systemClock, type Clock } from "./services/dates.ts";
 
@@ -36,6 +38,8 @@ export function createApp({ db, env, clock = systemClock, log = false }: AppDeps
   app.route("/api/workouts", workoutRoutes);
   app.route("/api/workout-exercises", blockRoutes);
   app.route("/api/sets", setRoutes);
+  app.route("/api/routines", routineRoutes);
+  app.route("/api/bodyweight", bodyweightRoutes);
 
   app.notFound((c) => c.json({ error: "Not found" }, 404));
   app.onError((err, c) => {

@@ -190,3 +190,40 @@ export const WorkoutListInput = z.object({
   offset,
 });
 export type WorkoutListInput = z.infer<typeof WorkoutListInput>;
+
+// ---------- Routines ----------
+
+export const RoutineShape = {
+  name: z.string().trim().min(1).max(100),
+  notes: notes.optional(),
+  exercises: z.array(PlanBlock).min(1).max(30).describe("Blocks in order; sets use reps or reps_min/reps_max as targets"),
+};
+export const RoutineInput = z.object(RoutineShape);
+export type RoutineInput = z.infer<typeof RoutineInput>;
+
+export const RoutinePatchShape = {
+  name: z.string().trim().min(1).max(100).optional(),
+  notes: notes.nullable().optional(),
+  exercises: z.array(PlanBlock).min(1).max(30).optional().describe("Replaces all blocks when given"),
+};
+export const RoutinePatch = z.object(RoutinePatchShape);
+export type RoutinePatch = z.infer<typeof RoutinePatch>;
+
+export const StartRoutineInput = z.object({ date: IsoDate.optional() });
+
+// ---------- Bodyweight ----------
+
+export const BodyweightFields = {
+  weight_kg: z.number().min(20).max(400),
+  fat_percent: z.number().min(1).max(70).optional(),
+  notes: notes.optional(),
+};
+export const BodyweightInput = z.object(BodyweightFields);
+export type BodyweightInput = z.infer<typeof BodyweightInput>;
+
+export const BodyweightListInput = z.object({
+  from: IsoDate.optional(),
+  to: IsoDate.optional(),
+  limit: limit(30, 365),
+});
+export type BodyweightListInput = z.infer<typeof BodyweightListInput>;
