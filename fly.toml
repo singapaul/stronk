@@ -1,5 +1,5 @@
-# Fly.io config. Change `app` to your app name (fly launch --no-deploy --copy-config will offer to).
-app = "stronk-gym"
+# Fly.io config. `app` must match the Fly app (fly apps list); CI deploys it on every push to main.
+app = "stronk"
 primary_region = "lhr"
 
 [build]
