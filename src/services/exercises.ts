@@ -125,7 +125,12 @@ export function searchExercises(db: DB, input: ExerciseSearchInput): { total: nu
       params.type = input.type;
     }
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
-    const order = match ? "times_logged DESC, bm25(exercises_fts, 10.0, 2.0, 1.0), e.name" : "times_logged DESC, e.name";
+    // Lifts before stretches unless the caller is looking for stretches; then logged-first, then relevance.
+    const wantsStretch = input.category === "stretching" || /stretch/i.test(input.query ?? "");
+    const stretchLast = wantsStretch ? "" : "(e.category = 'stretching'), ";
+    const order = match
+      ? `times_logged DESC, ${stretchLast}bm25(exercises_fts, 10.0, 2.0, 1.0), e.name`
+      : `times_logged DESC, ${stretchLast}e.name`;
     const total = db
       .query<{ n: number }, Record<string, string | number>>(`SELECT COUNT(*) AS n FROM ${from} ${whereSql}`)
       .get(params)!.n;

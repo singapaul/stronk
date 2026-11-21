@@ -153,3 +153,14 @@ describe("REST /api/exercises", () => {
     expect(ok.body.type).toBe("weight_duration");
   });
 });
+
+describe("search ranking", () => {
+  test("stretches rank below lifts unless asked for", async () => {
+    const db = testDb();
+    seedExercises(db, await loadSourceExercises());
+    const lifts = searchExercises(db, { query: "squat", limit: 5, offset: 0 }).results;
+    expect(lifts.every((r) => r.category !== "stretching")).toBe(true);
+    const stretches = searchExercises(db, { query: "hamstring stretch", limit: 3, offset: 0 }).results;
+    expect(stretches[0]!.category).toBe("stretching");
+  });
+});
