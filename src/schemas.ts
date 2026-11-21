@@ -74,7 +74,8 @@ const rpe = z.number().min(1).max(10).multipleOf(0.5);
 const durationS = z.number().int().min(0).max(86_400);
 const distanceM = z.number().min(0).max(1_000_000);
 const notes = z.string().trim().max(1000);
-const id = z.coerce.number().int().positive();
+/** JSON ids (bodies and MCP inputs). Path params are coerced in routes. */
+const id = z.number().int().positive();
 const DateTime = z.iso.datetime({ offset: true, error: "Expected an ISO datetime, e.g. 2026-03-10T18:00:00Z" });
 
 export const PerformedSetFields = {

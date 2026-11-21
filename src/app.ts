@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { ZodError } from "zod";
-import { createRateLimiter, rateLimit, restAuth, type Credential } from "./auth.ts";
+import { createRateLimiter, mcpAuth, rateLimit, restAuth, type Credential } from "./auth.ts";
+import { mcpHandler } from "./mcp/route.ts";
 import type { DB } from "./db.ts";
 import type { Env } from "./env.ts";
 import { AppError } from "./errors.ts";
@@ -42,6 +43,10 @@ export function createApp({ db, env, clock = systemClock, log = false }: AppDeps
   app.route("/api/routines", routineRoutes);
   app.route("/api/bodyweight", bodyweightRoutes);
   app.route("/api", statsRoutes);
+
+  // MCP: Bearer or Basic on /mcp; secret path for clients that can't send headers.
+  app.all("/mcp", rateLimit(limiter), mcpAuth(env), mcpHandler);
+  app.all("/mcp/:token", rateLimit(limiter), mcpAuth(env), mcpHandler);
 
   app.notFound((c) => c.json({ error: "Not found" }, 404));
   app.onError((err, c) => {
