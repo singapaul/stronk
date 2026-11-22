@@ -282,3 +282,46 @@ describe("program tools", () => {
     expect((await call("update_program", { program_id: p.data.id, routine_ids: [legs] })).isError).toBe(true);
   });
 });
+
+describe("response size", () => {
+  test("program tools keep their text compact; structuredContent stays complete", async () => {
+    const { call } = await setup();
+    const lifts = [
+      { exercise_id: "bench", weight_kg: 80 },
+      { exercise_id: "squat", weight_kg: 100 },
+      { exercise_id: "pullup" },
+      { exercise_id: "assisted_dip", weight_kg: -20 },
+      { exercise_id: "plank" },
+    ];
+    const ids: number[] = [];
+    for (const name of ["Upper A", "Lower A", "Upper B", "Lower B"]) {
+      const r = await call("create_routine", {
+        name,
+        exercises: lifts.map((l) => ({
+          exercise_id: l.exercise_id,
+          sets: [1, 2, 3].map(() => (l.exercise_id === "plank" ? { duration_s: 60 } : { reps_min: 6, reps_max: 10, ...(l.weight_kg != null ? { weight_kg: l.weight_kg } : {}) })),
+        })),
+      });
+      ids.push(r.data.id);
+    }
+    await call("create_program", { name: "4-day", routine_ids: ids });
+    for (let day = 0; day < 4; day++) {
+      const date = `2026-03-${String(11 + day).padStart(2, "0")}`;
+      await call("start_next_workout", { date });
+      for (const l of lifts) {
+        for (let i = 0; i < 3; i++) {
+          await call("log_set", l.exercise_id === "plank" ? { exercise_id: "plank", duration_s: 60, date } : { ...l, reps: 8, rpe: 8, date });
+        }
+      }
+    }
+    const review = await call("review_cycle", {});
+    const program = await call("get_program", {});
+    const full = JSON.stringify(review.structuredContent).length;
+    // Budget: one review of a 4-day program stays a few thousand characters (~1–2k tokens).
+    expect(review.text.length).toBeLessThan(full);
+    expect(review.text.length).toBeLessThan(6500);
+    expect(program.text.length).toBeLessThan(4000);
+    // Nothing is lost: structured output keeps every performed set.
+    expect(review.structuredContent.slots[0].exercises[0].performed).toHaveLength(3);
+  });
+});

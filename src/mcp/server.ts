@@ -33,6 +33,7 @@ import {
   startNextWorkout,
   updateProgram,
   type CycleDetail,
+  type CycleReview,
   type ProgramDetail,
 } from "../services/programs.ts";
 import { exerciseHistory, formatSet, personalRecords, recentWorkouts } from "../services/stats.ts";
@@ -63,16 +64,21 @@ export const SERVER_INSTRUCTIONS = `Personal gym log. Conventions:
 
 type Data = Record<string, unknown>;
 
-const ok = (summary: string, data: Data): CallToolResult => ({
-  content: [{ type: "text", text: `${summary}\n\n${JSON.stringify(data)}` }],
+/**
+ * structuredContent always carries the full data. The text block (what most chat clients show the
+ * model) carries the summary plus JSON: the full data, or a compact projection for tools whose full
+ * output would be large (`text`), so a chat isn't charged thousands of tokens for one call.
+ */
+const ok = (summary: string, data: Data, text?: Data): CallToolResult => ({
+  content: [{ type: "text", text: `${summary}\n\n${JSON.stringify(text ?? data)}` }],
   structuredContent: data,
 });
 
 /** Run a service call, turning domain/validation errors into tool errors Claude can act on. */
-function run(fn: () => { summary: string; data: Data }): CallToolResult {
+function run(fn: () => { summary: string; data: Data; text?: Data }): CallToolResult {
   try {
-    const { summary, data } = fn();
-    return ok(summary, data);
+    const { summary, data, text } = fn();
+    return ok(summary, data, text);
   } catch (err) {
     if (err instanceof AppError) {
       const payload = { error: err.message, ...(err.details !== undefined ? { details: err.details } : {}) };
@@ -115,6 +121,66 @@ function describeWorkout(w: WorkoutDetail): string {
         .join(", "),
   );
   return [head, ...lines].join("\n");
+}
+
+/** Cycle without per-set objects: targets as one string per lift ("80×5-8, 80×5-8"). */
+function compactCycle(c: CycleDetail) {
+  return {
+    number: c.number,
+    targets_source: c.targets_source,
+    notes: c.notes,
+    complete: c.complete,
+    next_slot_position: c.next_slot_position,
+    slots: c.slots.map((s) => ({
+      position: s.position,
+      routine: s.routine.name,
+      status: s.status,
+      workout: s.workout,
+      exercises: s.exercises.map((e) => ({ exercise_id: e.exercise.id, sets: e.sets.length, targets: describeTargets(e.sets) })),
+    })),
+  };
+}
+
+function compactProgram(p: ProgramDetail) {
+  return {
+    id: p.id,
+    name: p.name,
+    is_active: p.is_active,
+    routines: p.slots.map((s) => s.routine.name),
+    cycles_completed: p.cycles_completed,
+    current_cycle: compactCycle(p.current_cycle),
+  };
+}
+
+/**
+ * Review without raw set lists or repeated prose: the summary above the JSON already has each
+ * lift's one-line target → performed line, so the JSON keeps only the numbers progression needs.
+ */
+function compactReview(r: CycleReview) {
+  return {
+    program: r.program,
+    cycle: r.cycle,
+    window: r.window,
+    slots: r.slots.map((s) => ({
+      position: s.position,
+      routine: s.routine,
+      status: s.status,
+      date: s.date,
+      exercises: s.exercises.map((e) => ({
+        exercise_id: e.exercise.id,
+        working_target_sets: e.working_target_sets,
+        sets_hit: e.sets_hit,
+        top_of_range_all_sets: e.top_of_range_all_sets,
+        avg_rpe: e.avg_rpe,
+        target_rpe: e.target_rpe,
+        best_e1rm_kg: e.best_e1rm_kg,
+        prev_cycle_best_e1rm_kg: e.prev_cycle_best_e1rm_kg,
+      })),
+    })),
+    bodyweight_change_kg: r.bodyweight.change_kg,
+    adhoc_workouts: r.adhoc_workouts.length,
+    next_cycle: r.next_cycle,
+  };
 }
 
 function describeCycle(c: CycleDetail): string {
@@ -476,7 +542,7 @@ export function buildMcpServer(ctx: Ctx): McpServer {
     (args) =>
       run(() => {
         const p = createProgram(ctx, { ...args, activate: args.activate ?? true });
-        return { summary: describeProgram(p), data: p };
+        return { summary: describeProgram(p), data: p, text: compactProgram(p) };
       }),
   );
 
@@ -491,7 +557,7 @@ export function buildMcpServer(ctx: Ctx): McpServer {
     ({ program_id, ...patch }) =>
       run(() => {
         const p = updateProgram(ctx, program_id, patch);
-        return { summary: describeProgram(p), data: p };
+        return { summary: describeProgram(p), data: p, text: compactProgram(p) };
       }),
   );
 
@@ -506,7 +572,7 @@ export function buildMcpServer(ctx: Ctx): McpServer {
     ({ program_id }) =>
       run(() => {
         const p = getProgram(ctx, program_id);
-        return { summary: describeProgram(p), data: p };
+        return { summary: describeProgram(p), data: p, text: compactProgram(p) };
       }),
   );
 
@@ -561,6 +627,7 @@ export function buildMcpServer(ctx: Ctx): McpServer {
         return {
           summary: `${r.program.name} cycle ${r.cycle.number} (${r.window.from ?? "?"} → ${r.window.to ?? "?"})${r.cycle.complete ? "" : " [not complete]"}\n${lines.join("\n")}${bw}`,
           data: r,
+          text: compactReview(r),
         };
       }),
   );
@@ -577,7 +644,11 @@ export function buildMcpServer(ctx: Ctx): McpServer {
     (args) =>
       run(() => {
         const r = setCycleTargets(ctx, args);
-        return { summary: `Saved targets for ${r.program.name} cycle ${r.cycle.number}.\n${describeCycleTargets(r.cycle)}`, data: r };
+        return {
+          summary: `Saved targets for ${r.program.name} cycle ${r.cycle.number}.\n${describeCycleTargets(r.cycle)}`,
+          data: r,
+          text: { program: r.program, cycle: compactCycle(r.cycle) },
+        };
       }),
   );
 

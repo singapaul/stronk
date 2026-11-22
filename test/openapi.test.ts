@@ -28,8 +28,8 @@ describe("OpenAPI spec", () => {
       app.routes.filter((r) => r.path.startsWith("/api/") && r.method !== "ALL").map((r) => `${r.method} ${toOpenApiPath(r.path)}`),
     );
     const documented = new Set([...specOps()].filter((o) => o.includes(" /api/")));
-    expect([...served].filter((o) => !documented.has(o))).toEqual([]); // undocumented routes
-    expect([...documented].filter((o) => !served.has(o))).toEqual([]); // documented but missing
+    expect([...served].filter((o) => !documented.has(o)), "Undocumented routes: add an entry to DOC_ROUTES in src/openapi/routes.ts").toEqual([]);
+    expect([...documented].filter((o) => !served.has(o)), "Documented in src/openapi/routes.ts but not served by the app").toEqual([]);
   });
 
   test("is OpenAPI 3.1 with summaries, auth errors and resolvable refs", () => {
@@ -72,13 +72,13 @@ describe("OpenAPI spec", () => {
       const [m, p] = op.split(" ");
       const item = spec.paths[p!][m!.toLowerCase()];
       const ok = Object.entries<any>(item.responses).find(([s]) => s.startsWith("2"))![1];
-      expect(ok.content["application/json"].example, op).toBeDefined();
+      expect(ok.content["application/json"].example, `${op}: add a call for it in src/openapi/example-scenario.ts, then run \`bun run docs:examples\``).toBeDefined();
     }
   });
 
   test("committed examples still match what the API returns", async () => {
     const live = await runExampleScenario();
-    expect(Object.keys(live).sort()).toEqual(Object.keys(committed).sort());
+    expect(Object.keys(live).sort(), "Run `bun run docs:examples` to refresh src/openapi/examples.json").toEqual(Object.keys(committed).sort());
     for (const [key, body] of Object.entries(live)) {
       const was = (committed as Record<string, unknown>)[key] as object;
       expect(Object.keys(body as object).sort(), `${key}: run \`bun run docs:examples\``).toEqual(Object.keys(was).sort());
@@ -88,8 +88,9 @@ describe("OpenAPI spec", () => {
 
 describe("MCP docs", () => {
   test("lists every tool from the live server and explains how to connect", async () => {
+    // The tool list itself is pinned in test/mcp.test.ts; here the docs just have to cover every live tool.
     const tools = await listMcpTools(ctx);
-    expect(tools).toHaveLength(27);
+    expect(tools.length).toBeGreaterThan(0);
     const mcpTag = spec.info.description as string;
     for (const t of tools) expect(mcpTag).toContain(`\`${t.name}\``);
     expect(mcpTag).toContain("claude mcp add --transport http");

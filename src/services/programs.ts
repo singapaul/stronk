@@ -615,3 +615,4 @@ export function reviewCycle(ctx: Ctx, input: { cycle_number?: number } = {}) {
     next_cycle: nextCycle ? { number: nextCycle.number, targets_source: nextCycle.targets_source } : null,
   };
 }
+export type CycleReview = ReturnType<typeof reviewCycle>;
