@@ -5,16 +5,16 @@
   },
   "DELETE /api/routines/:id": {
     "deleted": true,
-    "routine_id": 2
+    "routine_id": 3
   },
   "DELETE /api/sets/:id": {
     "deleted": true,
-    "set_id": 6,
+    "set_id": 10,
     "workout_id": 1
   },
   "DELETE /api/workouts/:id": {
     "deleted": true,
-    "workout_id": 4
+    "workout_id": 6
   },
   "GET /api/bodyweight": {
     "entries": [
@@ -143,6 +143,428 @@
       }
     ]
   },
+  "GET /api/programs": {
+    "programs": [
+      {
+        "id": 1,
+        "name": "Upper/Lower",
+        "is_active": true,
+        "routines": [
+          "Push A",
+          "Lower A"
+        ],
+        "current_cycle": 2,
+        "cycles_completed": 1
+      }
+    ]
+  },
+  "GET /api/programs/:id": {
+    "id": 1,
+    "name": "Upper/Lower",
+    "notes": "4-day split",
+    "is_active": true,
+    "slots": [
+      {
+        "position": 1,
+        "routine": {
+          "id": 1,
+          "name": "Push A"
+        }
+      },
+      {
+        "position": 2,
+        "routine": {
+          "id": 2,
+          "name": "Lower A"
+        }
+      }
+    ],
+    "cycles_completed": 1,
+    "current_cycle": {
+      "number": 2,
+      "targets_source": "claude",
+      "notes": "Bench hit the top of the range on every set: +2.5 kg",
+      "complete": false,
+      "next_slot_position": 1,
+      "slots": [
+        {
+          "position": 1,
+          "routine": {
+            "id": 1,
+            "name": "Push A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Bench_Press_-_Medium_Grip",
+                "name": "Barbell Bench Press - Medium Grip",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "position": 2,
+          "routine": {
+            "id": 2,
+            "name": "Lower A"
+          },
+          "status": "skipped",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Squat",
+                "name": "Barbell Squat",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-03-10T18:00:00.000Z",
+      "updated_at": "2026-03-10T18:00:00.000Z"
+    },
+    "created_at": "2026-03-10T18:00:00.000Z",
+    "updated_at": "2026-03-10T18:00:00.000Z"
+  },
+  "GET /api/programs/current": {
+    "id": 1,
+    "name": "Upper/Lower",
+    "notes": null,
+    "is_active": true,
+    "slots": [
+      {
+        "position": 1,
+        "routine": {
+          "id": 1,
+          "name": "Push A"
+        }
+      },
+      {
+        "position": 2,
+        "routine": {
+          "id": 2,
+          "name": "Lower A"
+        }
+      }
+    ],
+    "cycles_completed": 0,
+    "current_cycle": {
+      "number": 1,
+      "targets_source": "initial",
+      "notes": null,
+      "complete": false,
+      "next_slot_position": 1,
+      "slots": [
+        {
+          "position": 1,
+          "routine": {
+            "id": 1,
+            "name": "Push A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Bench_Press_-_Medium_Grip",
+                "name": "Barbell Bench Press - Medium Grip",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 80,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 80,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "position": 2,
+          "routine": {
+            "id": 2,
+            "name": "Lower A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Squat",
+                "name": "Barbell Squat",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-03-10T18:00:00.000Z",
+      "updated_at": "2026-03-10T18:00:00.000Z"
+    },
+    "created_at": "2026-03-10T18:00:00.000Z",
+    "updated_at": "2026-03-10T18:00:00.000Z"
+  },
+  "GET /api/programs/cycles/review": {
+    "program": {
+      "id": 1,
+      "name": "Upper/Lower"
+    },
+    "cycle": {
+      "number": 1,
+      "complete": true,
+      "targets_source": "initial",
+      "notes": null
+    },
+    "window": {
+      "from": "2026-03-13",
+      "to": "2026-03-14"
+    },
+    "slots": [
+      {
+        "position": 1,
+        "routine": "Push A",
+        "status": "done",
+        "date": "2026-03-13",
+        "exercises": [
+          {
+            "exercise": {
+              "id": "Barbell_Bench_Press_-_Medium_Grip",
+              "name": "Barbell Bench Press - Medium Grip",
+              "type": "weight_reps"
+            },
+            "targets": [
+              {
+                "set_number": 1,
+                "type": "normal",
+                "reps_min": 5,
+                "reps_max": 8,
+                "weight_kg": 80,
+                "rpe": null,
+                "duration_s": null,
+                "distance_m": null
+              },
+              {
+                "set_number": 2,
+                "type": "normal",
+                "reps_min": 5,
+                "reps_max": 8,
+                "weight_kg": 80,
+                "rpe": null,
+                "duration_s": null,
+                "distance_m": null
+              }
+            ],
+            "performed": [
+              {
+                "set_number": 1,
+                "type": "normal",
+                "reps": 8,
+                "weight_kg": 80,
+                "rpe": 8,
+                "duration_s": null,
+                "distance_m": null,
+                "is_planned": 0
+              },
+              {
+                "set_number": 2,
+                "type": "normal",
+                "reps": 8,
+                "weight_kg": 80,
+                "rpe": 8,
+                "duration_s": null,
+                "distance_m": null,
+                "is_planned": 0
+              }
+            ],
+            "working_target_sets": 2,
+            "sets_hit": 2,
+            "top_of_range_all_sets": true,
+            "avg_rpe": 8,
+            "target_rpe": null,
+            "best_e1rm_kg": 101.3,
+            "prev_cycle_best_e1rm_kg": null,
+            "summary": "Barbell Bench Press - Medium Grip: target 80×5-8, 80×5-8 → 80×8 @8, 80×8 @8 (2/2 hit, top of range on all), RPE 8, e1RM 101.3"
+          }
+        ]
+      },
+      {
+        "position": 2,
+        "routine": "Lower A",
+        "status": "done",
+        "date": "2026-03-14",
+        "exercises": [
+          {
+            "exercise": {
+              "id": "Barbell_Squat",
+              "name": "Barbell Squat",
+              "type": "weight_reps"
+            },
+            "targets": [
+              {
+                "set_number": 1,
+                "type": "normal",
+                "reps_min": 5,
+                "reps_max": 6,
+                "weight_kg": 120,
+                "rpe": null,
+                "duration_s": null,
+                "distance_m": null
+              },
+              {
+                "set_number": 2,
+                "type": "normal",
+                "reps_min": 5,
+                "reps_max": 6,
+                "weight_kg": 120,
+                "rpe": null,
+                "duration_s": null,
+                "distance_m": null
+              }
+            ],
+            "performed": [
+              {
+                "set_number": 1,
+                "type": "normal",
+                "reps": 6,
+                "weight_kg": 120,
+                "rpe": 8.5,
+                "duration_s": null,
+                "distance_m": null,
+                "is_planned": 0
+              },
+              {
+                "set_number": 2,
+                "type": "normal",
+                "reps": 5,
+                "weight_kg": 120,
+                "rpe": 8.5,
+                "duration_s": null,
+                "distance_m": null,
+                "is_planned": 0
+              }
+            ],
+            "working_target_sets": 2,
+            "sets_hit": 2,
+            "top_of_range_all_sets": false,
+            "avg_rpe": 8.5,
+            "target_rpe": null,
+            "best_e1rm_kg": 144,
+            "prev_cycle_best_e1rm_kg": null,
+            "summary": "Barbell Squat: target 120×5-6, 120×5-6 → 120×6 @8.5, 120×5 @8.5 (2/2 hit), RPE 8.5, e1RM 144"
+          }
+        ]
+      }
+    ],
+    "bodyweight": {
+      "start_kg": 82.4,
+      "end_kg": 82.4,
+      "change_kg": 0
+    },
+    "adhoc_workouts": [],
+    "next_cycle": null
+  },
   "GET /api/prs": {
     "records": [
       {
@@ -261,7 +683,7 @@
     "id": 1,
     "name": "Push A",
     "notes": "Heavy day",
-    "last_performed": "2026-03-10",
+    "last_performed": "2026-03-13",
     "exercises": [
       {
         "position": 1,
@@ -368,6 +790,8 @@
     "name": "Push A",
     "notes": "Heavy day",
     "routine_id": 1,
+    "cycle_id": null,
+    "slot_id": null,
     "status": "in_progress",
     "start_time": "2026-03-10T18:00:00.000Z",
     "end_time": "2026-03-10T18:06:00.000Z",
@@ -444,6 +868,8 @@
     "name": "Lower",
     "notes": null,
     "routine_id": null,
+    "cycle_id": null,
+    "slot_id": null,
     "status": "completed",
     "start_time": "2026-03-07T10:00:00.000Z",
     "end_time": "2026-03-07T11:00:00.000Z",
@@ -506,6 +932,8 @@
     "name": "Push A",
     "notes": "Heavy day",
     "routine_id": 1,
+    "cycle_id": null,
+    "slot_id": null,
     "status": "in_progress",
     "start_time": "2026-03-10T18:00:00.000Z",
     "end_time": "2026-03-10T18:06:00.000Z",
@@ -592,6 +1020,130 @@
     "instructions": [],
     "images": [],
     "is_custom": true,
+    "created_at": "2026-03-10T18:00:00.000Z",
+    "updated_at": "2026-03-10T18:00:00.000Z"
+  },
+  "PATCH /api/programs/:id": {
+    "id": 1,
+    "name": "Upper/Lower",
+    "notes": "4-day split",
+    "is_active": true,
+    "slots": [
+      {
+        "position": 1,
+        "routine": {
+          "id": 1,
+          "name": "Push A"
+        }
+      },
+      {
+        "position": 2,
+        "routine": {
+          "id": 2,
+          "name": "Lower A"
+        }
+      }
+    ],
+    "cycles_completed": 1,
+    "current_cycle": {
+      "number": 2,
+      "targets_source": "claude",
+      "notes": "Bench hit the top of the range on every set: +2.5 kg",
+      "complete": false,
+      "next_slot_position": 1,
+      "slots": [
+        {
+          "position": 1,
+          "routine": {
+            "id": 1,
+            "name": "Push A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Bench_Press_-_Medium_Grip",
+                "name": "Barbell Bench Press - Medium Grip",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "position": 2,
+          "routine": {
+            "id": 2,
+            "name": "Lower A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Squat",
+                "name": "Barbell Squat",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-03-10T18:00:00.000Z",
+      "updated_at": "2026-03-10T18:00:00.000Z"
+    },
     "created_at": "2026-03-10T18:00:00.000Z",
     "updated_at": "2026-03-10T18:00:00.000Z"
   },
@@ -683,6 +1235,8 @@
     "name": "Push A",
     "notes": "Felt strong",
     "routine_id": 1,
+    "cycle_id": null,
+    "slot_id": null,
     "status": "in_progress",
     "start_time": "2026-03-10T18:00:00.000Z",
     "end_time": "2026-03-10T18:06:00.000Z",
@@ -759,6 +1313,8 @@
     "name": "Push A",
     "notes": "Felt strong",
     "routine_id": 1,
+    "cycle_id": null,
+    "slot_id": null,
     "status": "in_progress",
     "start_time": "2026-03-10T18:00:00.000Z",
     "end_time": "2026-03-10T18:06:00.000Z",
@@ -848,6 +1404,332 @@
     "created_at": "2026-03-10T18:00:00.000Z",
     "updated_at": "2026-03-10T18:00:00.000Z"
   },
+  "POST /api/programs": {
+    "id": 1,
+    "name": "Upper/Lower",
+    "notes": null,
+    "is_active": true,
+    "slots": [
+      {
+        "position": 1,
+        "routine": {
+          "id": 1,
+          "name": "Push A"
+        }
+      },
+      {
+        "position": 2,
+        "routine": {
+          "id": 2,
+          "name": "Lower A"
+        }
+      }
+    ],
+    "cycles_completed": 0,
+    "current_cycle": {
+      "number": 1,
+      "targets_source": "initial",
+      "notes": null,
+      "complete": false,
+      "next_slot_position": 1,
+      "slots": [
+        {
+          "position": 1,
+          "routine": {
+            "id": 1,
+            "name": "Push A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Bench_Press_-_Medium_Grip",
+                "name": "Barbell Bench Press - Medium Grip",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 80,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 80,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "position": 2,
+          "routine": {
+            "id": 2,
+            "name": "Lower A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Squat",
+                "name": "Barbell Squat",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-03-10T18:00:00.000Z",
+      "updated_at": "2026-03-10T18:00:00.000Z"
+    },
+    "created_at": "2026-03-10T18:00:00.000Z",
+    "updated_at": "2026-03-10T18:00:00.000Z"
+  },
+  "POST /api/programs/next-workout": {
+    "program": {
+      "id": 1,
+      "name": "Upper/Lower"
+    },
+    "cycle": {
+      "number": 1,
+      "targets_source": "initial"
+    },
+    "slot": {
+      "position": 1,
+      "of": 2,
+      "routine": {
+        "id": 1,
+        "name": "Push A"
+      }
+    },
+    "already_started": false,
+    "workout": {
+      "id": 4,
+      "date": "2026-03-13",
+      "name": "Push A",
+      "notes": "Heavy day",
+      "routine_id": 1,
+      "cycle_id": 1,
+      "slot_id": 1,
+      "status": "planned",
+      "start_time": null,
+      "end_time": null,
+      "duration_min": null,
+      "totals": {
+        "performed_sets": 0,
+        "planned_sets": 2,
+        "volume_kg": 0
+      },
+      "exercises": [
+        {
+          "block_id": 4,
+          "position": 1,
+          "exercise": {
+            "id": "Barbell_Bench_Press_-_Medium_Grip",
+            "name": "Barbell Bench Press - Medium Grip",
+            "type": "weight_reps"
+          },
+          "superset_group": null,
+          "notes": null,
+          "rest_seconds": 180,
+          "sets": [
+            {
+              "id": 6,
+              "set_number": 1,
+              "type": "normal",
+              "is_planned": true,
+              "reps": null,
+              "weight_kg": null,
+              "duration_s": null,
+              "distance_m": null,
+              "rpe": null,
+              "notes": null,
+              "target": {
+                "reps_min": 5,
+                "reps_max": 8,
+                "weight_kg": 80,
+                "rpe": null,
+                "duration_s": null,
+                "distance_m": null
+              },
+              "performed_at": null
+            },
+            {
+              "id": 7,
+              "set_number": 2,
+              "type": "normal",
+              "is_planned": true,
+              "reps": null,
+              "weight_kg": null,
+              "duration_s": null,
+              "distance_m": null,
+              "rpe": null,
+              "notes": null,
+              "target": {
+                "reps_min": 5,
+                "reps_max": 8,
+                "weight_kg": 80,
+                "rpe": null,
+                "duration_s": null,
+                "distance_m": null
+              },
+              "performed_at": null
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-03-10T18:00:00.000Z",
+      "updated_at": "2026-03-10T18:00:00.000Z"
+    }
+  },
+  "POST /api/programs/skip": {
+    "skipped": {
+      "position": 2,
+      "routine": "Lower A"
+    },
+    "cycle": {
+      "number": 2,
+      "targets_source": "claude",
+      "notes": "Bench hit the top of the range on every set: +2.5 kg",
+      "complete": false,
+      "next_slot_position": 1,
+      "slots": [
+        {
+          "position": 1,
+          "routine": {
+            "id": 1,
+            "name": "Push A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Bench_Press_-_Medium_Grip",
+                "name": "Barbell Bench Press - Medium Grip",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "position": 2,
+          "routine": {
+            "id": 2,
+            "name": "Lower A"
+          },
+          "status": "skipped",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Squat",
+                "name": "Barbell Squat",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-03-10T18:00:00.000Z",
+      "updated_at": "2026-03-10T18:00:00.000Z"
+    }
+  },
   "POST /api/routines": {
     "id": 1,
     "name": "Push A",
@@ -897,6 +1779,8 @@
     "name": "Push A",
     "notes": "Heavy day",
     "routine_id": 1,
+    "cycle_id": null,
+    "slot_id": null,
     "status": "planned",
     "start_time": null,
     "end_time": null,
@@ -1074,6 +1958,8 @@
       "name": "Lower",
       "notes": null,
       "routine_id": null,
+      "cycle_id": null,
+      "slot_id": null,
       "status": "completed",
       "start_time": "2026-03-07T10:00:00.000Z",
       "end_time": "2026-03-07T11:00:00.000Z",
@@ -1138,6 +2024,8 @@
     "name": "Lower B",
     "notes": null,
     "routine_id": null,
+    "cycle_id": null,
+    "slot_id": null,
     "status": "planned",
     "start_time": null,
     "end_time": null,
@@ -1193,5 +2081,110 @@
     "fat_percent": null,
     "notes": null,
     "updated_at": "2026-03-10T18:00:00.000Z"
+  },
+  "PUT /api/programs/cycles/targets": {
+    "program": {
+      "id": 1,
+      "name": "Upper/Lower"
+    },
+    "cycle": {
+      "number": 2,
+      "targets_source": "claude",
+      "notes": "Bench hit the top of the range on every set: +2.5 kg",
+      "complete": false,
+      "next_slot_position": 1,
+      "slots": [
+        {
+          "position": 1,
+          "routine": {
+            "id": 1,
+            "name": "Push A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Bench_Press_-_Medium_Grip",
+                "name": "Barbell Bench Press - Medium Grip",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 8,
+                  "weight_kg": 82.5,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "position": 2,
+          "routine": {
+            "id": 2,
+            "name": "Lower A"
+          },
+          "status": "pending",
+          "workout": null,
+          "exercises": [
+            {
+              "exercise": {
+                "id": "Barbell_Squat",
+                "name": "Barbell Squat",
+                "type": "weight_reps"
+              },
+              "position": 1,
+              "superset_group": null,
+              "notes": null,
+              "rest_seconds": 180,
+              "sets": [
+                {
+                  "set_number": 1,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                },
+                {
+                  "set_number": 2,
+                  "type": "normal",
+                  "reps_min": 5,
+                  "reps_max": 6,
+                  "weight_kg": 120,
+                  "rpe": null,
+                  "duration_s": null,
+                  "distance_m": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "created_at": "2026-03-10T18:00:00.000Z",
+      "updated_at": "2026-03-10T18:00:00.000Z"
+    }
   }
 }

@@ -89,7 +89,7 @@ describe("OpenAPI spec", () => {
 describe("MCP docs", () => {
   test("lists every tool from the live server and explains how to connect", async () => {
     const tools = await listMcpTools(ctx);
-    expect(tools).toHaveLength(20);
+    expect(tools).toHaveLength(27);
     const mcpTag = spec.info.description as string;
     for (const t of tools) expect(mcpTag).toContain(`\`${t.name}\``);
     expect(mcpTag).toContain("claude mcp add --transport http");

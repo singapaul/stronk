@@ -258,3 +258,81 @@ export const PrsQuery = z.object({
 
 /** Body for POST /api/sets/:id/complete (the set id comes from the path). */
 export const CompleteSetBody = PerformedSet;
+
+// ---------- Programs & cycles ----------
+
+const routineIds = z
+  .array(z.number().int().positive())
+  .min(1)
+  .max(14)
+  .describe("Routine ids in the order they're run; one pass through the list is a cycle");
+
+export const ProgramShape = {
+  name: z.string().trim().min(1).max(100),
+  notes: notes.optional(),
+  routine_ids: routineIds,
+  activate: z.boolean().default(true).describe("Make this the active program (deactivates any other)"),
+};
+export const ProgramInput = z.object(ProgramShape);
+export type ProgramInput = z.infer<typeof ProgramInput>;
+
+export const ProgramPatchShape = {
+  name: z.string().trim().min(1).max(100).optional(),
+  notes: notes.nullable().optional(),
+  routine_ids: routineIds.optional().describe("Replaces the slots; only allowed before any workout of the program has started"),
+  active: z.boolean().optional(),
+};
+export const ProgramPatch = z.object(ProgramPatchShape);
+export type ProgramPatch = z.infer<typeof ProgramPatch>;
+
+export const NextWorkoutInput = z.object({
+  date: IsoDate.optional().describe("Training day to plan it on; defaults to today"),
+});
+
+export const SkipSlotInput = z.object({
+  slot_position: z.number().int().min(1).optional().describe("Defaults to the next slot due"),
+});
+
+export const ReviewCycleQuery = z.object({
+  cycle_number: z.coerce.number().int().min(1).optional().describe("Defaults to the latest completed cycle"),
+});
+
+export const CycleTargetSet = z.object({
+  type: SetType.optional(),
+  reps: reps.optional().describe("Exact target reps (shorthand for reps_min = reps_max)"),
+  reps_min: reps.optional(),
+  reps_max: reps.optional(),
+  weight_kg: weightKg.optional(),
+  rpe: rpe.optional(),
+  duration_s: durationS.optional(),
+  distance_m: distanceM.optional(),
+});
+export type CycleTargetSet = z.infer<typeof CycleTargetSet>;
+
+export const SetCycleTargetsShape = {
+  cycle_number: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .describe("Defaults to the latest cycle if it's unfinished, otherwise a new next cycle"),
+  notes: notes.optional().describe("Why these targets, e.g. the progression applied"),
+  slots: z
+    .array(
+      z.object({
+        slot_position: z.number().int().min(1),
+        exercises: z
+          .array(
+            z.object({
+              exercise_id: z.string().min(1),
+              sets: z.array(CycleTargetSet).min(1).max(20).describe("Replaces this exercise's target sets, in order"),
+            }),
+          )
+          .min(1),
+      }),
+    )
+    .min(1)
+    .describe("Only the slots and exercises listed change; everything else carries over"),
+};
+export const SetCycleTargetsInput = z.object(SetCycleTargetsShape);
+export type SetCycleTargetsInput = z.infer<typeof SetCycleTargetsInput>;
