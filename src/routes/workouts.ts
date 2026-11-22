@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../app.ts";
-import { BlockPatch, IsoDate, LogWorkoutInput, PlanSessionInput, WorkoutListInput, WorkoutPatch } from "../schemas.ts";
+import { BlockPatch, CreateWorkoutInput, IsoDate, PlanSessionInput, WorkoutListInput, WorkoutPatch } from "../schemas.ts";
 import {
   deleteWorkout,
   getWorkout,
@@ -16,8 +16,6 @@ import {
 import { notFound } from "../errors.ts";
 
 const Id = z.coerce.number().int().positive();
-/** REST allows creating an empty workout; MCP's log_workout requires sets. */
-const CreateWorkoutInput = LogWorkoutInput.extend({ exercises: LogWorkoutInput.shape.exercises.min(0).default([]) });
 
 export const workoutRoutes = new Hono<AppEnv>()
   .get("/", (c) => c.json({ workouts: listWorkouts(c.var.ctx, WorkoutListInput.parse(c.req.query())) }))

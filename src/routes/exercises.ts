@@ -1,14 +1,12 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../app.ts";
-import { CustomExerciseInput, ExercisePatch, ExerciseSearchInput } from "../schemas.ts";
+import { CustomExerciseInput, ExercisePatch, ExerciseSearchQuery } from "../schemas.ts";
 import { createCustomExercise, getExercise, searchExercises, updateExercise } from "../services/exercises.ts";
 
 export const exerciseRoutes = new Hono<AppEnv>()
   .get("/", (c) => {
-    // REST uses ?q= for the free-text query.
-    const { q, ...rest } = c.req.query();
-    const input = ExerciseSearchInput.parse({ ...rest, query: q ?? rest.query });
-    return c.json(searchExercises(c.var.ctx.db, input));
+    const { q, ...rest } = ExerciseSearchQuery.parse(c.req.query());
+    return c.json(searchExercises(c.var.ctx.db, { ...rest, query: q }));
   })
   .get("/:id", (c) => c.json(getExercise(c.var.ctx.db, c.req.param("id"))))
   .post("/", async (c) => {
