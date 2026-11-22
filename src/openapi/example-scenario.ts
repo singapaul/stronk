@@ -90,6 +90,8 @@ export async function runExampleScenario(): Promise<Record<string, unknown>> {
   now = new Date("2026-03-10T18:06:00Z");
   await call("POST /api/sets/:id/complete", `/api/sets/${plannedId}/complete`, { reps: 6, weight_kg: 80, rpe: 9 });
   await call("PATCH /api/sets/:id", `/api/sets/${logged.set.id}`, { notes: "paused reps" });
+  await call("POST /api/sets/:id/uncomplete", `/api/sets/${plannedId}/uncomplete`);
+  await call("POST /api/sets/:id/complete", `/api/sets/${plannedId}/complete`, { reps: 6, weight_kg: 80, rpe: 9 }, false);
 
   await call("POST /api/workouts/plan", "/api/workouts/plan", {
     date: "2026-03-12",
@@ -100,6 +102,7 @@ export async function runExampleScenario(): Promise<Record<string, unknown>> {
   await call("GET /api/workouts/today", "/api/workouts/today");
   await call("GET /api/workouts/by-date/:date", "/api/workouts/by-date/2026-03-07");
   await call("GET /api/workouts/:id", `/api/workouts/${started.id}`);
+  await call("GET /api/workouts/:id/prs", `/api/workouts/${started.id}/prs`);
   await call("PATCH /api/workouts/:id", `/api/workouts/${started.id}`, { notes: "Felt strong" });
   await call("PATCH /api/workout-exercises/:id", `/api/workout-exercises/${started.exercises[0].block_id}`, { rest_seconds: 150 });
 

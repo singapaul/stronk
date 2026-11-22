@@ -95,6 +95,10 @@ export const LogSetShape = {
   ...PerformedSetFields,
   workout_id: id.optional().describe("Defaults to the workout for `date`"),
   date: IsoDate.optional().describe("Training day YYYY-MM-DD; defaults to today (Europe/London, day rolls over at 04:00)"),
+  fill_planned: z
+    .boolean()
+    .optional()
+    .describe("Default true: fill the next planned set for this exercise if one is waiting. false always adds a new set"),
 };
 export const LogSetInput = z.object(LogSetShape);
 export type LogSetInput = z.infer<typeof LogSetInput>;

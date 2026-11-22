@@ -12,6 +12,7 @@ import {
   today,
   updateBlock,
   updateWorkout,
+  workoutPrs,
 } from "../services/workouts.ts";
 import { notFound } from "../errors.ts";
 
@@ -39,6 +40,7 @@ export const workoutRoutes = new Hono<AppEnv>()
     if (!w) throw notFound(`Workout for ${date}`);
     return c.json(w);
   })
+  .get("/:id/prs", (c) => c.json(workoutPrs(c.var.ctx, Id.parse(c.req.param("id")))))
   .get("/:id", (c) => c.json(getWorkout(c.var.ctx, Id.parse(c.req.param("id")))))
   .patch("/:id", async (c) =>
     c.json(updateWorkout(c.var.ctx, Id.parse(c.req.param("id")), WorkoutPatch.parse(await c.req.json()))),

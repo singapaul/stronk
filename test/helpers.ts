@@ -30,11 +30,11 @@ export function testClock(iso = "2026-03-10T18:00:00Z") {
   return clock;
 }
 
-export function testApp(opts: { env?: Partial<Env>; clock?: ReturnType<typeof testClock> } = {}) {
+export function testApp(opts: { env?: Partial<Env>; clock?: ReturnType<typeof testClock>; fetch?: typeof fetch; webDist?: string } = {}) {
   const db = testDb();
   const clock = opts.clock ?? testClock();
   const env = { ...testEnv, ...opts.env };
-  const { app, ctx } = createApp({ db, env, clock });
+  const { app, ctx } = createApp({ db, env, clock, fetch: opts.fetch, webDist: opts.webDist ?? "/nonexistent-web-dist" });
   const auth = { authorization: `Basic ${btoa(`${env.BASIC_AUTH_USER}:${env.BASIC_AUTH_PASS}`)}` };
   /** Authenticated JSON request helper. */
   const call = async <T = any>(method: string, path: string, body?: unknown) => {

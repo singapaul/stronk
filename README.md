@@ -10,6 +10,36 @@ A personal API for logging gym lifts. It's a single Bun + Hono service backed by
 
 **API docs:** Swagger UI at [`/docs`](https://stronk.fly.dev/docs) (log in with the basic-auth credentials), covering every REST endpoint with schemas and real example responses, plus how to connect MCP and the full tool list. The raw spec is at `/openapi.json`. It's generated from the Zod schemas and the live MCP server. If you add a route, document it in `src/openapi/routes.ts` (a test fails otherwise), and after response shapes change run `bun run docs:examples`.
 
+## Web app
+
+A phone-first PWA served at `/` by the same app (`https://stronk.fly.dev`). Open it on your phone and use **Add to Home Screen**.
+
+- **Workout:** your active program's current cycle and its routines with Claude's targets. **Start** plans the next workout. Each set row shows the target, what you did last time, and kg/reps prefilled from the target. Tick a set to save it immediately and start the rest timer; untick to undo. You can add sets and exercises. **Finish** shows a summary.
+- **History:** past workouts with volume and duration. Tap one to see every set against its target and fix or delete sets, or tap an exercise for its history and PRs.
+- **Body:** log bodyweight. This is also used to load bodyweight exercises such as pull-ups.
+- **Offline:** the app opens without a connection. Sets ticked offline wait (marked with a dot) and sync when you're back online. Starting a workout needs a connection.
+- **The loop with Claude:** Claude assigns a cycle (`create_program`, `set_cycle_targets`), you run it in the app, and once the cycle is complete Claude reviews it (`review_cycle`) and sets the next cycle's weights.
+
+**Sign-in is Google, for the web app only.** Claude keeps using its MCP token or secret URL, and scripts keep basic auth. One-time setup:
+1. In Google Cloud Console, create a project. Then **APIs & Services → OAuth consent screen**: External, testing mode, with yourself as a test user.
+2. **Credentials → Create credentials → OAuth client ID → Web application**, with these authorised redirect URIs:
+   - `https://stronk.fly.dev/auth/google/callback`
+   - `http://localhost:3000/auth/google/callback` (optional, for local use)
+3. Set the secrets. Setting them restarts the app:
+   ```bash
+   fly secrets set GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=... ALLOWED_EMAILS=you@gmail.com \
+     SESSION_SECRET=$(openssl rand -hex 32) PUBLIC_URL=https://stronk.fly.dev
+   ```
+
+Sessions last 30 days and renew while you use the app. To sign everyone out, change `SESSION_SECRET`. To remove someone's access, take their email out of `ALLOWED_EMAILS`.
+
+**Developing the app:** run the API with a dev sign-in, then start Vite with hot reload on :5173, which proxies `/api` and `/auth` to the API:
+```bash
+DEV_LOGIN_EMAIL=you@example.com bun run dev
+bun run web:dev
+```
+Alternatively, `bun run web:build` and use :3000 directly. Dev sign-in (`/auth/dev`) never works when `NODE_ENV=production`. Run `bun run icons` after editing `web/public/icon.svg`.
+
 ## Local setup
 
 ```bash
@@ -29,6 +59,8 @@ Generate tokens with `openssl rand -hex 32`. The app refuses to start if any aut
 | `PORT` | Default `3000` |
 | `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_S` | Default 300 requests per 300 s, per credential type and client IP |
 | `LITESTREAM_*` | Optional continuous backup (see [Backups](#backups)) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`, `SESSION_SECRET`, `PUBLIC_URL` | Web app sign-in. Set all five or none (see [Web app](#web-app)) |
+| `DEV_LOGIN_EMAIL` | Local-only dev sign-in for the web app (ignored in production) |
 
 Scripts:
 
@@ -87,7 +119,8 @@ All routes under `/api` need basic auth. Bodies are JSON and validated with Zod.
 | Method & path | Notes |
 |---|---|
 | `GET /health` | No auth. Returns `{ "ok": true }` |
-| `GET /docs`, `GET /openapi.json` | Swagger UI and the OpenAPI 3.1 spec (basic auth) |
+| `GET /docs`, `GET /openapi.json` | Swagger UI and the OpenAPI 3.1 spec (basic auth or web session) |
+| `GET /auth/google`, `GET /auth/me`, `POST /auth/logout` | Web app sign-in (Google) |
 | `GET /api/exercises?q=&muscle=&equipment=&level=&category=&type=&limit=&offset=` | Search |
 | `GET /api/exercises/:id` | Detail, with image URLs |
 | `POST /api/exercises` | Create a custom exercise |
@@ -195,5 +228,8 @@ src/
   services/         all business logic + SQL (shared by REST and MCP)
   routes/           thin REST handlers
   mcp/              MCP server, tools and stateless transport
+  web-auth.ts       Google sign-in + session cookie for the web app
+  web-static.ts     serves web/dist with the client-side route fallback
+web/                the PWA (Preact + Vite); web/src/lib holds the unit-tested logic
 test/               bun test, in-memory DB per test
 ```

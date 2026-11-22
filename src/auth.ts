@@ -1,5 +1,5 @@
 import { createHash, timingSafeEqual } from "node:crypto";
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 import type { AppEnv } from "./app.ts";
 import type { Env } from "./env.ts";
 import type { Clock } from "./services/dates.ts";
@@ -20,7 +20,10 @@ export function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ha, hb);
 }
 
-export type Credential = "basic" | "bearer" | "path";
+export type Credential = "basic" | "bearer" | "path" | "session";
+
+/** Header the web app sends on every request. Cookie-authenticated writes require it (CSRF guard). */
+export const WEB_CLIENT_HEADER = "x-stronk-client";
 
 function parseBasic(header: string | undefined): { user: string; pass: string } | null {
   const m = header?.match(/^Basic\s+(.+)$/i);
@@ -70,11 +73,26 @@ const unauthorized = (realm: boolean) =>
     },
   });
 
-export function restAuth(env: Env): MiddlewareHandler<AppEnv> {
+/**
+ * REST auth: basic auth, or the web app's session cookie. A cookie alone never authorises a write:
+ * the request must also carry `X-Stronk-Client: web`, which another site can't add without a CORS
+ * preflight this app never allows.
+ */
+export function restAuth(env: Env, session?: (c: Context) => string | null): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
-    if (!checkBasic(env, c.req.header("authorization"))) return unauthorized(true);
-    c.set("credential", "basic");
-    await next();
+    if (checkBasic(env, c.req.header("authorization"))) {
+      c.set("credential", "basic");
+      return next();
+    }
+    const fromWeb = c.req.header(WEB_CLIENT_HEADER) === "web";
+    if (session?.(c)) {
+      const write = !["GET", "HEAD", "OPTIONS"].includes(c.req.method);
+      if (write && !fromWeb) return c.json({ error: "Missing X-Stronk-Client header" }, 403);
+      c.set("credential", "session");
+      return next();
+    }
+    // No Basic challenge for the web app, so the browser doesn't pop up a login dialog.
+    return unauthorized(!fromWeb);
   };
 }
 
@@ -122,7 +140,9 @@ export function rateLimit(limiter: ReturnType<typeof createRateLimiter>): Middle
   return async (c, next) => {
     const auth = c.req.header("authorization");
     const pathToken = c.req.param("token");
-    const kind = pathToken ? "path" : auth?.match(/^(\w+)\s/)?.[1]?.toLowerCase();
+    const kind = pathToken
+      ? "path"
+      : (auth?.match(/^(\w+)\s/)?.[1]?.toLowerCase() ?? (c.req.header("cookie")?.includes("stronk_session=") ? "session" : undefined));
     const key = kind ? `${kind}:${clientIp((n) => c.req.header(n))}` : `anon:${clientIp((n) => c.req.header(n))}`;
     const retry = limiter.hit(key);
     if (retry != null) {

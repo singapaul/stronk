@@ -10,16 +10,25 @@
     "fetch-exercises": "bun scripts/fetch-exercises.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "docs:examples": "bun scripts/gen-openapi-examples.ts"
+    "docs:examples": "bun scripts/gen-openapi-examples.ts",
+    "web:dev": "vite --config web/vite.config.ts",
+    "web:build": "vite build --config web/vite.config.ts",
+    "web:typecheck": "tsc --noEmit -p web/tsconfig.json",
+    "icons": "bun scripts/gen-icons.ts"
   },
   "dependencies": {
     "@hono/swagger-ui": "0.6.2",
     "@modelcontextprotocol/sdk": "1.32.2",
     "hono": "4.13.19",
+    "preact": "10.29.8",
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@preact/preset-vite": "2.10.6",
+    "@resvg/resvg-js": "2.6.2",
     "@types/bun": "^1.4.5",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vite": "8.3.8",
+    "vite-plugin-pwa": "2.0.0"
   }
 }
