@@ -297,3 +297,61 @@ describe("PR flags", () => {
     expect(drop.body.is_pr).toBe(false);
   });
 });
+
+describe("web app support", () => {
+  const plan = { name: "Push", exercises: [{ exercise_id: "bench", sets: [{ reps_min: 5, reps_max: 8, weight_kg: 80 }, { reps_min: 5, reps_max: 8, weight_kg: 80 }] }] };
+
+  test("uncomplete reverts a completed planned set to planned, keeping targets", async () => {
+    const { call } = setup();
+    const p = await call("POST", "/api/workouts/plan", plan);
+    const setId = p.body.exercises[0].sets[0].id;
+    await call("POST", `/api/sets/${setId}/complete`, { reps: 7, weight_kg: 80, rpe: 8 });
+    const undo = await call("POST", `/api/sets/${setId}/uncomplete`);
+    expect(undo.status).toBe(200);
+    expect(undo.body.set).toMatchObject({ is_planned: true, reps: null, weight_kg: null, rpe: null, performed_at: null });
+    expect(undo.body.set.target).toMatchObject({ reps_min: 5, weight_kg: 80 });
+    expect(undo.body.planned_remaining).toBe(2);
+    expect((await call("POST", `/api/sets/${setId}/uncomplete`)).status).toBe(409); // already planned
+  });
+
+  test("uncomplete refuses a set that was never planned", async () => {
+    const { call } = setup();
+    const s = await call("POST", "/api/sets", { exercise_id: "squat", reps: 5, weight_kg: 100 });
+    const res = await call("POST", `/api/sets/${s.body.set.id}/uncomplete`);
+    expect(res.status).toBe(409);
+    expect(res.body.error).toContain("delete it instead");
+  });
+
+  test("fill_planned: false adds a new set even when planned ones are waiting", async () => {
+    const { call } = setup();
+    await call("POST", "/api/workouts/plan", plan);
+    const extra = await call("POST", "/api/sets", { exercise_id: "bench", reps: 10, weight_kg: 60, fill_planned: false });
+    expect(extra.body.filled_planned).toBe(false);
+    expect(extra.body.set.set_number).toBe(3);
+    expect(extra.body.planned_remaining).toBe(2);
+  });
+
+  test("workout list includes volume, duration and cycle number", async () => {
+    const { call } = setup();
+    await call("POST", "/api/workouts", {
+      date: "2026-03-08",
+      start_time: "2026-03-08T10:00:00Z",
+      end_time: "2026-03-08T10:50:00Z",
+      exercises: [{ exercise_id: "bench", sets: [{ reps: 5, weight_kg: 80 }, { reps: 5, weight_kg: 80 }] }],
+    });
+    const list = await call("GET", "/api/workouts");
+    expect(list.body.workouts[0]).toMatchObject({ volume_kg: 800, duration_min: 50, cycle_number: null });
+  });
+});
+
+describe("workout PRs", () => {
+  test("lists the PR sets of a workout, and 404s for an unknown one", async () => {
+    const { call } = setup();
+    await call("POST", "/api/sets", { exercise_id: "bench", reps: 5, weight_kg: 80, date: "2026-03-01" });
+    const w = await call("POST", "/api/workouts", { exercises: [{ exercise_id: "bench", sets: [{ reps: 5, weight_kg: 85 }, { reps: 3, weight_kg: 70 }] }] });
+    const res = await call("GET", `/api/workouts/${w.body.workout.id}/prs`);
+    expect(res.body.prs).toHaveLength(1);
+    expect(res.body.prs[0]).toMatchObject({ exercise_id: "bench", flags: { heaviest: true } });
+    expect((await call("GET", "/api/workouts/999/prs")).status).toBe(404);
+  });
+});

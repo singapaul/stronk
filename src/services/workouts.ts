@@ -233,6 +233,10 @@ export type WorkoutSummary = {
   date: string;
   name: string | null;
   status: WorkoutStatus;
+  volume_kg: number;
+  duration_min: number | null;
+  /** Cycle number when the workout was started from a program slot. */
+  cycle_number: number | null;
   performed_sets: number;
   planned_sets: number;
   exercises: string[];
@@ -242,10 +246,11 @@ export type WorkoutSummary = {
 export function listWorkouts(ctx: Ctx, input: WorkoutListInput): WorkoutSummary[] {
   const rows = ctx.db
     .query<
-      { id: number; date: string; name: string | null; updated_at: string; performed: number; planned: number; names: string | null },
+      { id: number; date: string; name: string | null; updated_at: string; performed: number; planned: number; names: string | null; cycle_number: number | null },
       Record<string, string | number>
     >(
       `SELECT w.id, w.date, w.name, w.updated_at,
+         (SELECT number FROM cycles c WHERE c.id = w.cycle_id) AS cycle_number,
          (SELECT COUNT(*) FROM sets s JOIN workout_exercises we ON we.id = s.workout_exercise_id
             WHERE we.workout_id = w.id AND s.is_planned = 0) AS performed,
          (SELECT COUNT(*) FROM sets s JOIN workout_exercises we ON we.id = s.workout_exercise_id
@@ -265,16 +270,23 @@ export function listWorkouts(ctx: Ctx, input: WorkoutListInput): WorkoutSummary[
       offset: input.offset,
     });
   const t = today(ctx);
-  return rows.map((r) => ({
+  return rows.map((r) => {
+    // Volume and duration use the same rules as the workout detail (a list page is at most 100 rows).
+    const detail = getWorkout(ctx, r.id);
+    return {
     id: r.id,
     date: r.date,
     name: r.name,
     status: deriveStatus(r.date, t, r.performed),
+    volume_kg: detail.totals.volume_kg,
+    duration_min: detail.duration_min,
+    cycle_number: r.cycle_number,
     performed_sets: r.performed,
     planned_sets: r.planned,
     exercises: r.names ? (JSON.parse(r.names) as string[]) : [],
     updated_at: r.updated_at,
-  }));
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -354,14 +366,16 @@ function assertMeasured(s: { reps?: number | null; duration_s?: number | null; d
  * Record a performed set in a block. If the block has a planned set of the same kind (warm-up vs working)
  * still waiting, fill the lowest-numbered one (targets are kept); otherwise append a new set.
  */
-function recordPerformedSet(db: DB, blockId: number, s: PerformedSet, performedAt: string | null) {
+function recordPerformedSet(db: DB, blockId: number, s: PerformedSet, performedAt: string | null, fillPlanned = true) {
   const wantWarmup = s.type === "warmup";
-  const planned = db
-    .query<SetRow, [number, number]>(
-      `SELECT * FROM sets WHERE workout_exercise_id = ? AND is_planned = 1
-         AND (type = 'warmup') = ? ORDER BY set_number LIMIT 1`,
-    )
-    .get(blockId, wantWarmup ? 1 : 0);
+  const planned = fillPlanned
+    ? db
+        .query<SetRow, [number, number]>(
+          `SELECT * FROM sets WHERE workout_exercise_id = ? AND is_planned = 1
+             AND (type = 'warmup') = ? ORDER BY set_number LIMIT 1`,
+        )
+        .get(blockId, wantWarmup ? 1 : 0)
+    : null;
   const values = {
     reps: s.reps ?? null,
     weight_kg: s.weight_kg ?? null,
@@ -481,7 +495,7 @@ export function logSet(ctx: Ctx, input: LogSetInput): SetResult {
   const { id, filled_planned } = db.transaction(() => {
     const w = ensureWorkout(db, date);
     const block = ensureBlock(db, w.id, input.exercise_id);
-    return recordPerformedSet(db, block.id, input, performedAtFor(ctx, date, false));
+    return recordPerformedSet(db, block.id, input, performedAtFor(ctx, date, false), input.fill_planned !== false);
   })();
   return setResult(ctx, id, { filled_planned });
 }
@@ -513,6 +527,22 @@ function collectPrs(ctx: Ctx, setIds: number[]) {
     .map((id) => ({ set_id: id, flags: prFlags(ctx.db, id) }))
     .filter((p) => anyPr(p.flags))
     .map((p) => ({ ...p, exercise_id: setContext(ctx.db, p.set_id).exercise_id }));
+}
+
+/**
+ * PRs set in a workout (each performed set compared with everything before it), so a summary or
+ * history view can show them after a reload or on another device.
+ */
+export function workoutPrs(ctx: Ctx, workoutId: number) {
+  requireWorkout(ctx.db, workoutId);
+  const ids = ctx.db
+    .query<{ id: number }, [number]>(
+      `SELECT s.id FROM sets s JOIN workout_exercises we ON we.id = s.workout_exercise_id
+       WHERE we.workout_id = ? AND s.is_planned = 0 ORDER BY we.position, s.set_number`,
+    )
+    .all(workoutId)
+    .map((r) => r.id);
+  return { workout_id: workoutId, prs: collectPrs(ctx, ids) };
 }
 
 /** Save target sets for a day (status derives to `planned` until something is performed). */
@@ -554,6 +584,22 @@ export function completePlannedSet(ctx: Ctx, input: CompletePlannedSetInput): Se
     at: performedAtFor(ctx, where.date, false),
   });
   return setResult(ctx, s.id, { filled_planned: true });
+}
+
+/** Undo completing a planned set: clear the actual numbers and make it planned again (targets kept). */
+export function uncompleteSet(ctx: Ctx, id: number): SetResult {
+  const { db } = ctx;
+  const s = getSetRow(db, id);
+  if (s.is_planned === 1) throw conflict(`Set ${id} is already planned`);
+  const hasTarget = [s.target_reps_min, s.target_reps_max, s.target_weight_kg, s.target_rpe, s.target_duration_s, s.target_distance_m].some(
+    (v) => v != null,
+  );
+  if (!hasTarget) throw conflict(`Set ${id} wasn't planned; delete it instead`);
+  db.query(
+    `UPDATE sets SET is_planned = 1, reps = NULL, weight_kg = NULL, duration_s = NULL, distance_m = NULL, rpe = NULL, performed_at = NULL
+     WHERE id = ?`,
+  ).run(id);
+  return setResult(ctx, id);
 }
 
 export function updateSet(ctx: Ctx, id: number, patch: SetPatch): SetResult {

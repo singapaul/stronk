@@ -93,9 +93,9 @@ describe("http", () => {
     expect(await res.json()).toEqual({ ok: true });
   });
 
-  test("unknown routes return JSON 404", async () => {
+  test("unknown server routes return JSON 404 (other paths belong to the web app)", async () => {
     const { app } = testApp();
-    const res = await app.request("/nope");
+    const res = await app.request("/auth/nope");
     expect(res.status).toBe(404);
     expect(await res.json()).toEqual({ error: "Not found" });
   });

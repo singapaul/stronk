@@ -169,6 +169,16 @@ export const DOC_ROUTES: DocRoute[] = [
     errors: [404],
   },
   {
+    method: "get",
+    path: "/api/workouts/:id/prs",
+    tag: "Workouts",
+    summary: "PRs set in a workout",
+    description: "Each performed set compared with every earlier working set of the same exercise: heaviest, e1RM and reps-at-weight flags.",
+    params: id,
+    ok: { status: 200, description: "The workout's PR sets" },
+    errors: [404],
+  },
+  {
     method: "patch",
     path: "/api/workouts/:id",
     tag: "Workouts",
@@ -222,6 +232,16 @@ export const DOC_ROUTES: DocRoute[] = [
     body: CompleteSetBody,
     ok: { status: 200, description: "The completed set" },
     errors: [400, 404, 409],
+  },
+  {
+    method: "post",
+    path: "/api/sets/:id/uncomplete",
+    tag: "Sets",
+    summary: "Undo completing a planned set",
+    description: "Clears the actual numbers and makes the set planned again, keeping its targets. Sets that were never planned return 409: delete them instead.",
+    params: id,
+    ok: { status: 200, description: "The set, planned again" },
+    errors: [404, 409],
   },
   {
     method: "patch",

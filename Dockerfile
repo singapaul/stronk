@@ -11,6 +11,16 @@ RUN --mount=type=secret,id=ca,required=false \
     if [ -s /run/secrets/ca ]; then CA="--cafile=/run/secrets/ca"; fi; \
     bun install --frozen-lockfile --production $CA
 
+# --- web: build the PWA (needs dev dependencies: vite, preact preset, PWA plugin)
+FROM oven/bun:1.3.11 AS web
+WORKDIR /app
+COPY package.json bun.lock ./
+RUN --mount=type=secret,id=ca,required=false \
+    if [ -s /run/secrets/ca ]; then CA="--cafile=/run/secrets/ca"; fi; \
+    bun install --frozen-lockfile $CA
+COPY web ./web
+RUN bun run web:build
+
 # --- litestream binary for continuous SQLite replication
 FROM litestream/litestream:0.5.18 AS litestream
 
@@ -26,6 +36,7 @@ COPY package.json tsconfig.json ./
 COPY litestream.yml /etc/litestream.yml
 COPY src ./src
 COPY data/exercises.json ./data/exercises.json
+COPY --from=web /app/web/dist ./web/dist
 COPY scripts/start.sh scripts/backup.sh ./scripts/
 
 ENV NODE_ENV=production \
