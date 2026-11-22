@@ -239,3 +239,22 @@ export const HistoryInput = z.object({
 });
 export const SummaryInput = z.object({ from: IsoDate.optional(), to: IsoDate.optional() });
 export const RecentInput = z.object({ days: z.coerce.number().int().min(1).max(365).default(14) });
+
+// ---------- REST-only shapes (also used by the OpenAPI spec) ----------
+
+/** REST allows creating an empty workout; MCP's log_workout requires sets. */
+export const CreateWorkoutInput = LogWorkoutInput.extend({
+  exercises: LogWorkoutInput.shape.exercises.min(0).default([]),
+});
+
+/** REST search uses ?q= for the free-text query. */
+export const ExerciseSearchQuery = ExerciseSearchInput.omit({ query: true }).extend({
+  q: ExerciseSearchInput.shape.query,
+});
+
+export const PrsQuery = z.object({
+  exercise_id: z.string().min(1).optional().describe("Limit to one exercise"),
+});
+
+/** Body for POST /api/sets/:id/complete (the set id comes from the path). */
+export const CompleteSetBody = PerformedSet;

@@ -4,6 +4,8 @@ import { logger } from "hono/logger";
 import { ZodError } from "zod";
 import { createRateLimiter, mcpAuth, rateLimit, restAuth, type Credential } from "./auth.ts";
 import { mcpHandler } from "./mcp/route.ts";
+import { swaggerUI } from "@hono/swagger-ui";
+import { buildOpenApi } from "./openapi/build.ts";
 import type { DB } from "./db.ts";
 import type { Env } from "./env.ts";
 import { AppError } from "./errors.ts";
@@ -43,6 +45,21 @@ export function createApp({ db, env, clock = systemClock, log = false }: AppDeps
   app.route("/api/routines", routineRoutes);
   app.route("/api/bodyweight", bodyweightRoutes);
   app.route("/api", statsRoutes);
+
+  // API docs: Swagger UI and the generated OpenAPI spec, behind the same basic auth as /api.
+  app.use("/docs", rateLimit(limiter), restAuth(env));
+  app.use("/openapi.json", rateLimit(limiter), restAuth(env));
+  app.get("/openapi.json", async (c) => c.json(await buildOpenApi(ctx)));
+  // Scheme-relative spec URL: a relative one breaks when the page was opened as https://user:pass@host/docs
+  // (browsers refuse fetch() against a base URL that carries credentials).
+  app.get("/docs", (c, next) => {
+    // The Host header is interpolated into the page, so only accept a plain host[:port].
+    const host = c.req.header("host") ?? "";
+    const specUrl = /^[a-z0-9.-]+(:\d+)?$/i.test(host) ? `//${host}/openapi.json` : "/openapi.json";
+    const ui = swaggerUI({ url: specUrl, title: "stronk API", persistAuthorization: true });
+    // swaggerUI is typed for Hono's default Env; it only renders HTML, so our AppEnv context is safe to pass.
+    return ui(c as unknown as Parameters<typeof ui>[0], next);
+  });
 
   // MCP: Bearer or Basic on /mcp; secret path for clients that can't send headers.
   app.all("/mcp", rateLimit(limiter), mcpAuth(env), mcpHandler);

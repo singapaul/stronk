@@ -8,6 +8,8 @@ A personal API for logging gym lifts. It's a single Bun + Hono service backed by
 - **Stats:** history per exercise, PRs (heaviest, Epley e1RM, best reps at each weight), and a weekly summary with per-muscle set counts. Bodyweight logging gives pull-ups and dips their real load.
 - **Units:** everything is in kilograms.
 
+**API docs:** Swagger UI at [`/docs`](https://stronk.fly.dev/docs) (log in with the basic-auth credentials), covering every REST endpoint with schemas and real example responses, plus how to connect MCP and the full tool list. The raw spec is at `/openapi.json`. It's generated from the Zod schemas and the live MCP server. If you add a route, document it in `src/openapi/routes.ts` (a test fails otherwise), and after response shapes change run `bun run docs:examples`.
+
 ## Local setup
 
 ```bash
@@ -85,6 +87,7 @@ All routes under `/api` need basic auth. Bodies are JSON and validated with Zod.
 | Method & path | Notes |
 |---|---|
 | `GET /health` | No auth. Returns `{ "ok": true }` |
+| `GET /docs`, `GET /openapi.json` | Swagger UI and the OpenAPI 3.1 spec (basic auth) |
 | `GET /api/exercises?q=&muscle=&equipment=&level=&category=&type=&limit=&offset=` | Search |
 | `GET /api/exercises/:id` | Detail, with image URLs |
 | `POST /api/exercises` | Create a custom exercise |
