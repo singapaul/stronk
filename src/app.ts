@@ -14,6 +14,7 @@ import { setRoutes } from "./routes/sets.ts";
 import { routineRoutes } from "./routes/routines.ts";
 import { bodyweightRoutes } from "./routes/body.ts";
 import { statsRoutes } from "./routes/stats.ts";
+import { programRoutes } from "./routes/programs.ts";
 import { blockRoutes, workoutRoutes } from "./routes/workouts.ts";
 import { systemClock, type Clock } from "./services/dates.ts";
 
@@ -45,6 +46,7 @@ export function createApp({ db, env, clock = systemClock, log = false }: AppDeps
   app.route("/api/routines", routineRoutes);
   app.route("/api/bodyweight", bodyweightRoutes);
   app.route("/api", statsRoutes);
+  app.route("/api/programs", programRoutes);
 
   // API docs: Swagger UI and the generated OpenAPI spec, behind the same basic auth as /api.
   app.use("/docs", rateLimit(limiter), restAuth(env));

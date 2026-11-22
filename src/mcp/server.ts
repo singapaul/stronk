@@ -13,6 +13,9 @@ import {
   LogSetShape,
   LogWorkoutShape,
   PlanSessionShape,
+  ProgramPatchShape,
+  ProgramShape,
+  SetCycleTargetsShape,
   RoutinePatchShape,
   RoutineShape,
   SetPatchFields,
@@ -20,6 +23,18 @@ import {
 import { getBodyweight, logBodyweight } from "../services/body.ts";
 import { createCustomExercise, getExercise, searchExercises } from "../services/exercises.ts";
 import { createRoutine, getRoutine, listRoutines, startRoutine, updateRoutine } from "../services/routines.ts";
+import {
+  createProgram,
+  describeTargets,
+  getProgram,
+  reviewCycle,
+  setCycleTargets,
+  skipSlot,
+  startNextWorkout,
+  updateProgram,
+  type CycleDetail,
+  type ProgramDetail,
+} from "../services/programs.ts";
 import { exerciseHistory, formatSet, personalRecords, recentWorkouts } from "../services/stats.ts";
 import {
   completePlannedSet,
@@ -42,6 +57,8 @@ export const SERVER_INSTRUCTIONS = `Personal gym log. Conventions:
 - log_set with no workout_id/date goes to today's workout (Europe/London; the day rolls over at 04:00), creating it if needed. If today has planned sets for that exercise, log_set fills the next one automatically, so don't call plan tools to log.
 - One workout per day. Planning or logging onto a day that already has a workout merges into it.
 - Planning: call get_recent_workouts and get_history for the main lifts first, then apply progressive overload from the real numbers (e.g. add reps within the rep range, then add load once the top of the range is hit at the target RPE). If a saved routine fits, prefer start_routine over writing a plan from scratch.
+- Programs: a program is an ordered list of routines run on repeat; one pass through the list is a cycle, and each cycle keeps its own target sets. While a program is active, start sessions with start_next_workout (not start_routine), then log sets as usual.
+- Progressing a program: call review_cycle, apply progressive overload to the actual numbers per lift (add reps within the range; add load once the top of the range is hit on every set at or under the target RPE; hold or reduce when sets were missed), propose the new targets in chat, and once the user agrees save them with set_cycle_targets. Only list the lifts you change; the rest carry over.
 - Mistakes: fix with update_set or delete_set (get_workout shows set ids).`;
 
 type Data = Record<string, unknown>;
@@ -98,6 +115,21 @@ function describeWorkout(w: WorkoutDetail): string {
         .join(", "),
   );
   return [head, ...lines].join("\n");
+}
+
+function describeCycle(c: CycleDetail): string {
+  const slots = c.slots.map((s) => `${s.routine.name}: ${s.status}${s.workout ? ` (${s.workout.date})` : ""}`).join(", ");
+  return `Cycle ${c.number}${c.complete ? " complete" : ""} [targets: ${c.targets_source}] — ${slots}`;
+}
+
+function describeCycleTargets(c: CycleDetail): string {
+  return c.slots
+    .map((s) => `${s.position}. ${s.routine.name} (${s.status})\n` + s.exercises.map((e) => `   - ${e.exercise.name}: ${describeTargets(e.sets)}`).join("\n"))
+    .join("\n");
+}
+
+function describeProgram(p: ProgramDetail): string {
+  return `${p.name} (id ${p.id}${p.is_active ? ", active" : ""}): ${p.slots.map((s) => s.routine.name).join(" → ")}. ${p.cycles_completed} cycle(s) completed.\n${describeCycle(p.current_cycle)}\n${describeCycleTargets(p.current_cycle)}`;
 }
 
 const routineId = z.number().int().positive().describe("Routine id from list_routines");
@@ -427,6 +459,125 @@ export function buildMcpServer(ctx: Ctx): McpServer {
       run(() => {
         const w = startRoutine(ctx, routine_id, date);
         return { summary: describeWorkout(w), data: w };
+      }),
+  );
+
+  // ----- Programs & cycles -----
+
+  server.registerTool(
+    "create_program",
+    {
+      title: "Create program",
+      description:
+        "Create a program: routines (ids from list_routines) run in order on repeat. One pass is a cycle; cycle 1 starts with the routines' targets. Becomes the active program by default.",
+      inputSchema: ProgramShape,
+      annotations: write,
+    },
+    (args) =>
+      run(() => {
+        const p = createProgram(ctx, { ...args, activate: args.activate ?? true });
+        return { summary: describeProgram(p), data: p };
+      }),
+  );
+
+  server.registerTool(
+    "update_program",
+    {
+      title: "Update program",
+      description: "Rename, change notes, or switch the active program. Changing routine_ids is only allowed before any of its workouts has started.",
+      inputSchema: { program_id: z.number().int().positive(), ...ProgramPatchShape },
+      annotations: { ...write, idempotentHint: true },
+    },
+    ({ program_id, ...patch }) =>
+      run(() => {
+        const p = updateProgram(ctx, program_id, patch);
+        return { summary: describeProgram(p), data: p };
+      }),
+  );
+
+  server.registerTool(
+    "get_program",
+    {
+      title: "Get program",
+      description: "The active program (or one by id): its routines and the current cycle with each slot's status and target sets.",
+      inputSchema: { program_id: z.number().int().positive().optional() },
+      annotations: readOnly,
+    },
+    ({ program_id }) =>
+      run(() => {
+        const p = getProgram(ctx, program_id);
+        return { summary: describeProgram(p), data: p };
+      }),
+  );
+
+  server.registerTool(
+    "start_next_workout",
+    {
+      title: "Start next workout",
+      description:
+        "Plan the next workout of the active program onto a day (default today) with the current cycle's targets, then log sets with log_set. Starts the next cycle (targets carried over) when the current one is complete.",
+      inputSchema: { date: IsoDate.optional() },
+      annotations: write,
+    },
+    ({ date }) =>
+      run(() => {
+        const r = startNextWorkout(ctx, { date });
+        const head = `Cycle ${r.cycle.number} · ${r.slot.routine.name} (${r.slot.position}/${r.slot.of})${r.already_started ? " — already planned" : ""}`;
+        return { summary: `${head}\n${describeWorkout(r.workout)}`, data: r };
+      }),
+  );
+
+  server.registerTool(
+    "skip_workout_slot",
+    {
+      title: "Skip a program workout",
+      description: "Skip a workout of the current cycle (default: the next one due) so the cycle can complete without it.",
+      inputSchema: { slot_position: z.number().int().min(1).optional() },
+      annotations: write,
+    },
+    ({ slot_position }) =>
+      run(() => {
+        const r = skipSlot(ctx, { slot_position });
+        return { summary: `Skipped ${r.skipped.routine} (slot ${r.skipped.position}). ${describeCycle(r.cycle)}`, data: r };
+      }),
+  );
+
+  server.registerTool(
+    "review_cycle",
+    {
+      title: "Review cycle",
+      description:
+        "How a cycle went (default: the latest completed): per lift, targets vs performed sets, sets hit, top of rep range, RPE vs target, and e1RM vs the previous cycle. Use it before set_cycle_targets.",
+      inputSchema: { cycle_number: z.number().int().min(1).optional() },
+      annotations: readOnly,
+    },
+    ({ cycle_number }) =>
+      run(() => {
+        const r = reviewCycle(ctx, { cycle_number });
+        const lines = r.slots.flatMap((s) =>
+          s.status === "done" ? s.exercises.map((e) => `- ${e.summary}`) : [`- ${s.routine}: ${s.status}`],
+        );
+        const bw = r.bodyweight.change_kg != null ? `\nBodyweight change: ${r.bodyweight.change_kg} kg` : "";
+        return {
+          summary: `${r.program.name} cycle ${r.cycle.number} (${r.window.from ?? "?"} → ${r.window.to ?? "?"})${r.cycle.complete ? "" : " [not complete]"}\n${lines.join("\n")}${bw}`,
+          data: r,
+        };
+      }),
+  );
+
+  server.registerTool(
+    "set_cycle_targets",
+    {
+      title: "Set cycle targets",
+      description:
+        "Save target sets for a cycle (default: the next cycle, or the current one if it's unfinished). Only listed lifts change; each listed lift's sets are replaced. Workouts already started are locked. Confirm the changes with the user first.",
+      inputSchema: SetCycleTargetsShape,
+      annotations: { ...write, idempotentHint: true },
+    },
+    (args) =>
+      run(() => {
+        const r = setCycleTargets(ctx, args);
+        return { summary: `Saved targets for ${r.program.name} cycle ${r.cycle.number}.\n${describeCycleTargets(r.cycle)}`, data: r };
       }),
   );
 

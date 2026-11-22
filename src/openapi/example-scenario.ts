@@ -109,6 +109,27 @@ export async function runExampleScenario(): Promise<Record<string, unknown>> {
   await call("GET /api/recent", "/api/recent?days=7");
   await call("GET /api/bodyweight", "/api/bodyweight");
 
+  // Programs: two routines on repeat, one full cycle, then the next cycle's targets.
+  const lower = await call("POST /api/routines", "/api/routines", {
+    name: "Lower A",
+    exercises: [{ exercise_id: squat, rest_seconds: 180, sets: [{ reps_min: 5, reps_max: 6, weight_kg: 120 }, { reps_min: 5, reps_max: 6, weight_kg: 120 }] }],
+  }, false);
+  const program = await call("POST /api/programs", "/api/programs", { name: "Upper/Lower", routine_ids: [routine.id, lower.id] });
+  await call("GET /api/programs/current", "/api/programs/current");
+  await call("POST /api/programs/next-workout", "/api/programs/next-workout", { date: "2026-03-13" });
+  for (const reps of [8, 8]) await call("POST /api/sets", "/api/sets", { exercise_id: bench, reps, weight_kg: 80, rpe: 8, date: "2026-03-13" }, false);
+  await call("POST /api/programs/next-workout", "/api/programs/next-workout", { date: "2026-03-14" }, false);
+  for (const reps of [6, 5]) await call("POST /api/sets", "/api/sets", { exercise_id: squat, reps, weight_kg: 120, rpe: 8.5, date: "2026-03-14" }, false);
+  await call("GET /api/programs/cycles/review", "/api/programs/cycles/review");
+  await call("PUT /api/programs/cycles/targets", "/api/programs/cycles/targets", {
+    notes: "Bench hit the top of the range on every set: +2.5 kg",
+    slots: [{ slot_position: 1, exercises: [{ exercise_id: bench, sets: [{ reps_min: 5, reps_max: 8, weight_kg: 82.5 }, { reps_min: 5, reps_max: 8, weight_kg: 82.5 }] }] }],
+  });
+  await call("GET /api/programs", "/api/programs");
+  await call("PATCH /api/programs/:id", `/api/programs/${program.id}`, { notes: "4-day split" });
+  await call("POST /api/programs/skip", "/api/programs/skip", { slot_position: 2 });
+  await call("GET /api/programs/:id", `/api/programs/${program.id}`);
+
   // Deletions last.
   const extra = await call("POST /api/sets", "/api/sets", { exercise_id: squat, reps: 3, weight_kg: 100, date: "2026-03-07" }, false);
   await call("DELETE /api/sets/:id", `/api/sets/${extra.set.id}`);

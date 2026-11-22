@@ -34,7 +34,7 @@ async function setup() {
 }
 
 describe("MCP server", () => {
-  test("lists the 20 tools with instructions", async () => {
+  test("lists the 27 tools with instructions", async () => {
     const { client } = await setup();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual(
@@ -42,6 +42,8 @@ describe("MCP server", () => {
         "complete_planned_set", "create_custom_exercise", "create_routine", "delete_set", "get_bodyweight", "get_exercise",
         "get_history", "get_prs", "get_recent_workouts", "get_routine", "get_workout", "list_routines", "log_bodyweight",
         "log_set", "log_workout", "plan_session", "search_exercises", "start_routine", "update_routine", "update_set",
+        "create_program", "update_program", "get_program", "start_next_workout", "skip_workout_slot", "review_cycle",
+        "set_cycle_targets",
       ].sort(),
     );
     expect(tools.find((t) => t.name === "delete_set")!.annotations?.destructiveHint).toBe(true);
@@ -218,5 +220,65 @@ describe("HTTP /mcp", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as any;
     expect(body.result.structuredContent.set.weight_kg).toBe(100);
+  });
+});
+
+describe("program tools", () => {
+  const setupProgram = async () => {
+    const t = await setup();
+    const push = await t.call("create_routine", { name: "Push", exercises: [{ exercise_id: "bench", sets: [{ reps_min: 5, reps_max: 8, weight_kg: 80 }] }] });
+    const legs = await t.call("create_routine", { name: "Legs", exercises: [{ exercise_id: "squat", sets: [{ reps_min: 5, reps_max: 6, weight_kg: 100 }] }] });
+    return { ...t, push: push.data.id, legs: legs.data.id };
+  };
+
+  test("no active program is an actionable error", async () => {
+    const { call } = await setup();
+    for (const tool of ["get_program", "start_next_workout", "review_cycle", "skip_workout_slot"]) {
+      const res = await call(tool, {});
+      expect(res.isError, tool).toBe(true);
+      expect(res.data.error).toContain("Active program");
+    }
+  });
+
+  test("create, run a cycle, review, set targets, next cycle", async () => {
+    const { call, push, legs } = await setupProgram();
+    const p = await call("create_program", { name: "PL", routine_ids: [push, legs] });
+    expect(p.text).toContain("PL (id");
+    expect(p.text).toContain("Push → Legs");
+    expect((await call("create_program", { name: "Bad", routine_ids: [999] })).isError).toBe(true);
+
+    const first = await call("start_next_workout", {});
+    expect(first.text).toContain("Cycle 1 · Push (1/2)");
+    await call("log_set", { exercise_id: "bench", reps: 8, weight_kg: 80, rpe: 8 });
+    const second = await call("start_next_workout", { date: "2026-03-12" });
+    expect(second.text).toContain("Cycle 1 · Legs (2/2)");
+    await call("log_set", { exercise_id: "squat", reps: 6, weight_kg: 100, date: "2026-03-12" });
+
+    const review = await call("review_cycle", {});
+    expect(review.text).toContain("top of range on all");
+    expect(review.data.cycle).toMatchObject({ number: 1, complete: true });
+    expect((await call("review_cycle", { cycle_number: 9 })).isError).toBe(true);
+
+    const set = await call("set_cycle_targets", {
+      slots: [{ slot_position: 1, exercises: [{ exercise_id: "bench", sets: [{ reps_min: 5, reps_max: 8, weight_kg: 82.5 }] }] }],
+    });
+    expect(set.text).toContain("cycle 2");
+    expect(set.text).toContain("82.5×5-8");
+    const bad = await call("set_cycle_targets", { slots: [{ slot_position: 1, exercises: [{ exercise_id: "squat", sets: [{ reps: 5 }] }] }] });
+    expect(bad.isError).toBe(true);
+
+    const next = await call("start_next_workout", { date: "2026-03-14" });
+    expect(next.text).toContain("Cycle 2 · Push (1/2)");
+    expect(next.data.workout.exercises[0].sets[0].target.weight_kg).toBe(82.5);
+
+    const skip = await call("skip_workout_slot", { slot_position: 2 });
+    expect(skip.text).toContain("Skipped Legs");
+    expect((await call("skip_workout_slot", { slot_position: 7 })).isError).toBe(true);
+
+    const got = await call("get_program", {});
+    expect(got.data.current_cycle.number).toBe(2);
+    const upd = await call("update_program", { program_id: p.data.id, notes: "Upper/lower" });
+    expect(upd.data.notes).toBe("Upper/lower");
+    expect((await call("update_program", { program_id: p.data.id, routine_ids: [legs] })).isError).toBe(true);
   });
 });

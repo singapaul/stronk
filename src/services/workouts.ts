@@ -28,6 +28,8 @@ type WorkoutRow = {
   name: string | null;
   notes: string | null;
   routine_id: number | null;
+  cycle_id: number | null;
+  slot_id: number | null;
   start_time: string | null;
   end_time: string | null;
   created_at: string;
@@ -116,6 +118,9 @@ export type WorkoutDetail = {
   name: string | null;
   notes: string | null;
   routine_id: number | null;
+  /** Set when started from a program slot (start_next_workout). */
+  cycle_id: number | null;
+  slot_id: number | null;
   status: WorkoutStatus;
   start_time: string | null;
   end_time: string | null;
@@ -204,6 +209,8 @@ export function getWorkout(ctx: Ctx, id: number): WorkoutDetail {
     name: w.name,
     notes: w.notes,
     routine_id: w.routine_id,
+    cycle_id: w.cycle_id,
+    slot_id: w.slot_id,
     status: deriveStatus(w.date, t, performed),
     ...timing(
       w,
