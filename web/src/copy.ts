@@ -42,7 +42,7 @@ export const COPY = {
   summary: { title: "Workout saved", prs: "New personal records", done: "Back to today" },
   history: { title: "History", empty: "No workouts logged yet.", more: "Load older workouts", thisWeek: "This week", lastWeek: "Last week" },
   exercise: { trend: "Progress", howTo: "How to do it", sessions: "Sessions", none: "Not logged yet." },
-  body: { title: "Bodyweight", save: "Save weight", saved: (kg: number) => `Saved ${kg} kg`, signedIn: "Signed in as", signOut: "Sign out" },
+  body: { title: "Bodyweight", save: "Save weight", saved: (kg: number) => `Saved ${kg} kg`, signedIn: "Signed in as", signOut: "Sign out", synced: "from Health Connect" },
   offline: (n: number) => (n > 0 ? `Offline · ${n} change${n === 1 ? "" : "s"} waiting to sync` : "Offline · changes sync when you're back"),
   syncing: (n: number) => `Syncing ${n} change${n === 1 ? "" : "s"}`,
   update: "A new version is ready",

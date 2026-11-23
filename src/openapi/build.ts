@@ -75,6 +75,7 @@ function operation(r: DocRoute): Json {
     ...(r.description ? { description: r.description } : {}),
     operationId: `${r.method}${toOpenApiPath(r.path).replace(/[^a-zA-Z0-9]+(.)?/g, (_, c: string | undefined) => (c ? c.toUpperCase() : ""))}`,
     ...(params.length ? { parameters: params } : {}),
+    ...(r.ingest ? { security: [{ ingestToken: [] }, { basicAuth: [] }] } : {}),
     ...(r.body ? { requestBody: { required: true, content: { "application/json": { schema: jsonSchema(r.body, "input") } } } } : {}),
     responses,
   };
@@ -221,6 +222,7 @@ async function build(ctx: Ctx): Promise<Json> {
       securitySchemes: {
         basicAuth: { type: "http", scheme: "basic" },
         bearerAuth: { type: "http", scheme: "bearer", description: "MCP_TOKEN (MCP endpoint only)" },
+        ingestToken: { type: "http", scheme: "bearer", description: "INGEST_TOKEN (bodyweight import only)" },
       },
       schemas: {
         Error: {

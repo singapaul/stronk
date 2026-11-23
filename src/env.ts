@@ -8,6 +8,9 @@ const EnvSchema = z.object({
   BASIC_AUTH_PASS: z.string({ error: "BASIC_AUTH_PASS is required" }).min(1, "BASIC_AUTH_PASS is required"),
   MCP_TOKEN: token("MCP_TOKEN"),
   MCP_PATH_TOKEN: token("MCP_PATH_TOKEN"),
+  // Optional token for phone health sync (POST /api/bodyweight/import). Unset: that route takes basic auth only.
+  // An empty value (as in .env.example) counts as unset.
+  INGEST_TOKEN: z.preprocess((v) => (v === "" ? undefined : v), token("INGEST_TOKEN").optional()),
   DB_PATH: z.string().default("./data/gym.db"),
   PORT: z.coerce.number().int().positive().default(3000),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(300),
@@ -36,6 +39,10 @@ export function loadEnv(source: Record<string, string | undefined> = process.env
   }
   if (parsed.data.MCP_TOKEN === parsed.data.MCP_PATH_TOKEN) {
     throw new Error("Invalid environment:\n  - MCP_TOKEN and MCP_PATH_TOKEN must differ");
+  }
+  const ingest = parsed.data.INGEST_TOKEN;
+  if (ingest && (ingest === parsed.data.MCP_TOKEN || ingest === parsed.data.MCP_PATH_TOKEN)) {
+    throw new Error("Invalid environment:\n  - INGEST_TOKEN must differ from MCP_TOKEN and MCP_PATH_TOKEN");
   }
   const set = WEB_AUTH_KEYS.filter((k) => parsed.data[k] !== undefined);
   if (set.length > 0 && set.length < WEB_AUTH_KEYS.length) {

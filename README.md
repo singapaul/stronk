@@ -16,7 +16,7 @@ A phone-first PWA served at `/` by the same app (`https://stronk.fly.dev`). Open
 
 - **Workout:** your active program's current cycle and its routines with Claude's targets. **Start** plans the next workout. Each set row shows the target, what you did last time, and kg/reps prefilled from the target. Tick a set to save it immediately and start the rest timer; untick to undo. You can add sets and exercises. **Finish** shows a summary.
 - **History:** past workouts with volume and duration. Tap one to see every set against its target and fix or delete sets, or tap an exercise for its history and PRs.
-- **Body:** log bodyweight. This is also used to load bodyweight exercises such as pull-ups.
+- **Body:** log bodyweight. This is also used to load bodyweight exercises such as pull-ups. Weigh-ins can also sync from your phone (see [Health Connect sync](#health-connect-sync)); synced days are labelled "from Health Connect".
 - **Offline:** the app opens without a connection. Sets ticked offline wait (marked with a dot) and sync when you're back online. Starting a workout needs a connection.
 - **The loop with Claude:** Claude assigns a cycle (`create_program`, `set_cycle_targets`), you run it in the app, and once the cycle is complete Claude reviews it (`review_cycle`) and sets the next cycle's weights.
 
@@ -40,6 +40,27 @@ bun run web:dev
 ```
 Alternatively, `bun run web:build` and use :3000 directly. Dev sign-in (`/auth/dev`) never works when `NODE_ENV=production`. Run `bun run icons` after editing `web/public/icon.svg`.
 
+## Health Connect sync
+
+Browsers can't read Health Connect, so a small Android app forwards your weigh-ins to `POST /api/bodyweight/import`. This uses [HC Webhook](https://github.com/mcnaveen/health-connect-webhook) (open source), which sends exactly the payload the route expects.
+
+1. Generate a token and set it (this restarts the app):
+   ```bash
+   fly secrets set INGEST_TOKEN=$(openssl rand -hex 32)
+   ```
+   The token can only call the import route, so the phone never holds your main credentials.
+2. Install HC Webhook on your phone and allow it to read **Weight** (and **Body fat** if your scale records it) in Health Connect.
+3. Add a webhook with URL `https://stronk.fly.dev/api/bodyweight/import` and a custom header `Authorization: Bearer <INGEST_TOKEN>` (or `X-Api-Key: <INGEST_TOKEN>`). Pick an interval or scheduled sync.
+
+How readings are stored:
+- **Per day:** each reading goes to its training day (Europe/London, 04:00 rollover), and the latest reading of the day wins.
+- **Manual entries win:** a day you entered yourself (in the app, through Claude or the API) is never overwritten. Saving a weight in the app for a synced day replaces it with your entry.
+- **Body fat** attaches to that day's synced weight.
+- **Resending is harmless**, so retries and overlapping sync windows don't duplicate anything.
+- **Bad readings are skipped**, not rejected: out-of-range values, unreadable times and times in the future. The response counts them under `skipped`.
+
+Health Connect only shares the last 30 days with a newly connected app, so older history won't come across.
+
 ## Local setup
 
 ```bash
@@ -55,6 +76,7 @@ Generate tokens with `openssl rand -hex 32`. The app refuses to start if any aut
 | `BASIC_AUTH_USER`, `BASIC_AUTH_PASS` | REST credentials. MCP also accepts them. |
 | `MCP_TOKEN` | Bearer token for MCP clients that can send headers (Claude Code) |
 | `MCP_PATH_TOKEN` | Secret URL segment for the Claude app (`/mcp/<token>`) |
+| `INGEST_TOKEN` | Optional. Token for phone health sync (`POST /api/bodyweight/import` only). See [Health Connect sync](#health-connect-sync) |
 | `DB_PATH` | SQLite file (default `./data/gym.db`, `/data/gym.db` in the container) |
 | `PORT` | Default `3000` |
 | `RATE_LIMIT_MAX`, `RATE_LIMIT_WINDOW_S` | Default 300 requests per 300 s, per credential type and client IP |

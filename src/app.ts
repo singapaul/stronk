@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { ZodError } from "zod";
-import { createRateLimiter, mcpAuth, rateLimit, restAuth, type Credential } from "./auth.ts";
+import { createRateLimiter, ingestAuth, mcpAuth, rateLimit, restAuth, type Credential } from "./auth.ts";
 import { mcpHandler } from "./mcp/route.ts";
 import { swaggerUI } from "@hono/swagger-ui";
 import { buildOpenApi } from "./openapi/build.ts";
@@ -15,7 +15,7 @@ import { AppError } from "./errors.ts";
 import { exerciseRoutes } from "./routes/exercises.ts";
 import { setRoutes } from "./routes/sets.ts";
 import { routineRoutes } from "./routes/routines.ts";
-import { bodyweightRoutes } from "./routes/body.ts";
+import { bodyweightRoutes, importBodyweightHandler } from "./routes/body.ts";
 import { statsRoutes } from "./routes/stats.ts";
 import { programRoutes } from "./routes/programs.ts";
 import { blockRoutes, workoutRoutes } from "./routes/workouts.ts";
@@ -51,6 +51,9 @@ export function createApp({ db, env, clock = systemClock, log = false, fetch: fe
   });
 
   app.get("/health", (c) => c.json({ ok: true }));
+
+  // Phone health sync. Registered before the /api/* auth so INGEST_TOKEN works here (and only here).
+  app.post("/api/bodyweight/import", rateLimit(limiter), ingestAuth(env), importBodyweightHandler);
 
   app.use("/api/*", rateLimit(limiter), restAuth(env, session));
   app.route("/api/exercises", exerciseRoutes);

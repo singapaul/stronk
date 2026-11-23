@@ -1,6 +1,7 @@
 import type { z } from "zod";
 import {
   BlockPatch,
+  BodyweightImportInput,
   BodyweightInput,
   BodyweightListInput,
   CompleteSetBody,
@@ -44,6 +45,8 @@ export type DocRoute = {
   body?: z.ZodType;
   /** Success status and what it returns. */
   ok: { status: 200 | 201; description: string };
+  /** Accepts INGEST_TOKEN as well as basic auth. */
+  ingest?: boolean;
   /** Domain errors on top of the 401/429 every route can return. */
   errors?: ErrorStatus[];
 };
@@ -399,6 +402,20 @@ export const DOC_ROUTES: DocRoute[] = [
     params: date,
     body: BodyweightInput,
     ok: { status: 200, description: "The entry" },
+    errors: [400],
+  },
+  {
+    method: "post",
+    path: "/api/bodyweight/import",
+    tag: "Bodyweight",
+    summary: "Import synced bodyweight",
+    description:
+      "For phone health sync, e.g. Health Connect via the HC Webhook Android app (this is its payload shape). Keeps the latest reading per training day. " +
+      "Manual entries are never overwritten, and a synced entry is only replaced by a later reading, so resending a batch is harmless. " +
+      "Body fat attaches to that day's synced entry. Authenticate with `Authorization: Bearer <INGEST_TOKEN>` (or `X-Api-Key: <INGEST_TOKEN>`), or basic auth.",
+    body: BodyweightImportInput,
+    ingest: true,
+    ok: { status: 200, description: "Dates written, readings already stored, and skipped readings by reason" },
     errors: [400],
   },
   { method: "delete", path: "/api/bodyweight/:date", tag: "Bodyweight", summary: "Delete a bodyweight entry", params: date, ok: { status: 200, description: "Deletion confirmation" }, errors: [400, 404] },

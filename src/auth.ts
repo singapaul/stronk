@@ -9,6 +9,8 @@ import type { Clock } from "./services/dates.ts";
  *
  * REST  /api/*        Basic auth.
  * MCP   /mcp          Bearer MCP_TOKEN, or Basic auth.
+ * Sync  POST /api/bodyweight/import   Bearer (or X-Api-Key) INGEST_TOKEN, or Basic auth. The token
+ *                     can do nothing else, so a phone sync app never holds the main credentials.
  * MCP   /mcp/:token   Secret path (MCP_PATH_TOKEN) for clients that can't send headers (Claude app
  *                     custom connectors). Weaker: the token lives in the URL.
  */
@@ -20,7 +22,7 @@ export function safeEqual(a: string, b: string): boolean {
   return timingSafeEqual(ha, hb);
 }
 
-export type Credential = "basic" | "bearer" | "path" | "session";
+export type Credential = "basic" | "bearer" | "path" | "session" | "ingest";
 
 /** Header the web app sends on every request. Cookie-authenticated writes require it (CSRF guard). */
 export const WEB_CLIENT_HEADER = "x-stronk-client";
@@ -93,6 +95,23 @@ export function restAuth(env: Env, session?: (c: Context) => string | null): Mid
     }
     // No Basic challenge for the web app, so the browser doesn't pop up a login dialog.
     return unauthorized(!fromWeb);
+  };
+}
+
+/** Auth for the health-sync import route: INGEST_TOKEN as a Bearer token or X-Api-Key header, or basic auth. */
+export function ingestAuth(env: Env): MiddlewareHandler<AppEnv> {
+  return async (c, next) => {
+    const header = c.req.header("authorization");
+    const token = header?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim() ?? c.req.header("x-api-key")?.trim();
+    if (env.INGEST_TOKEN && token && safeEqual(token, env.INGEST_TOKEN)) {
+      c.set("credential", "ingest");
+      return next();
+    }
+    if (checkBasic(env, header)) {
+      c.set("credential", "basic");
+      return next();
+    }
+    return unauthorized(false);
   };
 }
 

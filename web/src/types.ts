@@ -109,4 +109,11 @@ export type HistorySession = {
 
 export type ExerciseSummary = { id: string; name: string; equipment: string | null; primary_muscles: string[]; times_logged: number };
 
-export type BodyweightEntry = { date: string; weight_kg: number | null; fat_percent: number | null; notes: string | null };
+export type BodyweightEntry = {
+  date: string;
+  weight_kg: number | null;
+  fat_percent: number | null;
+  notes: string | null;
+  /** health_connect: synced from the phone; a manual entry for the same day replaces it. */
+  source?: "manual" | "health_connect";
+};

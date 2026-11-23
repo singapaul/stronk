@@ -68,6 +68,13 @@ export async function runExampleScenario(): Promise<Record<string, unknown>> {
   await call("PATCH /api/exercises/:id", `/api/exercises/${custom.id}`, { level: "intermediate" });
 
   await call("PUT /api/bodyweight/:date", "/api/bodyweight/2026-03-01", { weight_kg: 82.4 });
+  await call("POST /api/bodyweight/import", "/api/bodyweight/import", {
+    weight: [
+      { time: "2026-03-02T07:12:00Z", kilograms: 82.15 },
+      { time: "2026-03-03T07:05:00+00:00", kilograms: 82.0 },
+    ],
+    body_fat: [{ time: "2026-03-03T07:05:00Z", percentage: 18.2 }],
+  });
   await call("POST /api/workouts", "/api/workouts", {
     date: "2026-03-07",
     name: "Lower",

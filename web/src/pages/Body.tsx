@@ -51,7 +51,10 @@ export function Body({ email, onSignOut }: { email: string; onSignOut: () => voi
         <div class="card m-nolift">
           <div class="body-now">
             <b class="num">{data.latest.weight_kg}</b>
-            <span class="muted">kg · {dayLabel(data.latest.date)}</span>
+            <span class="muted">
+              kg · {dayLabel(data.latest.date)}
+              {data.latest.source === "health_connect" && ` · ${COPY.body.synced}`}
+            </span>
           </div>
           {data.change_kg != null && (
             <p class="muted small">
@@ -87,7 +90,10 @@ export function Body({ email, onSignOut }: { email: string; onSignOut: () => voi
           <ul class="row-list">
             {data.entries.map((e) => (
               <li class="kv">
-                <span>{dayLabel(e.date)}</span>
+                <span>
+                  {dayLabel(e.date)}
+                  {e.source === "health_connect" && <span class="muted small"> · {COPY.body.synced}</span>}
+                </span>
                 <span class="num">{e.weight_kg != null ? `${e.weight_kg} kg` : "—"}</span>
               </li>
             ))}

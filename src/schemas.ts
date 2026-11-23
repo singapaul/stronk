@@ -233,6 +233,20 @@ export const BodyweightListInput = z.object({
 });
 export type BodyweightListInput = z.infer<typeof BodyweightListInput>;
 
+/** Readings from a phone health store. `time` is ISO-8601 with an offset or Z. */
+const WeightReading = z.looseObject({ time: z.string().min(1), kilograms: z.number() });
+const FatReading = z.looseObject({ time: z.string().min(1), percentage: z.number() });
+
+/**
+ * Batched readings from Health Connect, in the payload shape the HC Webhook Android app sends.
+ * Extra keys (other data types, metadata) are ignored. Out-of-range or undated readings are skipped, not rejected.
+ */
+export const BodyweightImportInput = z.looseObject({
+  weight: z.array(WeightReading).max(5000).optional().describe("Weight readings: { time, kilograms }"),
+  body_fat: z.array(FatReading).max(5000).optional().describe("Body-fat readings: { time, percentage } (0-100)"),
+});
+export type BodyweightImportInput = z.infer<typeof BodyweightImportInput>;
+
 // ---------- Stats ----------
 
 export const HistoryInput = z.object({
