@@ -3,3 +3,6 @@ data/*.db
 data/*.db-*
 .env
 web/dist/
+# taste-skill working files (browser profile, check outputs); the deal history is kept
+web/.taste-skill/*
+!web/.taste-skill/history.json

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { api } from "../api.ts";
+import { COPY } from "../copy.ts";
 import type { ExerciseSummary } from "../types.ts";
+import { Sheet } from "./Sheet.tsx";
 
 export function ExercisePicker({ onPick, onClose }: { onPick: (e: ExerciseSummary) => void; onClose: () => void }) {
   const [q, setQ] = useState("");
@@ -19,29 +21,22 @@ export function ExercisePicker({ onPick, onClose }: { onPick: (e: ExerciseSummar
   }, [q]);
 
   return (
-    <div class="sheet-backdrop" onClick={onClose}>
-      <div class="sheet" onClick={(e) => e.stopPropagation()}>
-        <div class="sheet-head">
-          <input ref={input} placeholder="Search exercises" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
-          <button class="link" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-        <ul class="picker">
-          {results.map((r) => (
-            <li>
-              <button onClick={() => onPick(r)}>
-                <span>{r.name}</span>
-                <span class="muted small">
-                  {[r.equipment, r.primary_muscles.join(", ")].filter(Boolean).join(" · ")}
-                  {r.times_logged ? ` · logged ${r.times_logged}×` : ""}
-                </span>
-              </button>
-            </li>
-          ))}
-          {results.length === 0 && <li class="muted pad">No matches</li>}
-        </ul>
-      </div>
-    </div>
+    <Sheet title={COPY.log.addExercise} onClose={onClose}>
+      <input ref={input} type="search" placeholder="Search exercises" aria-label="Search exercises" value={q} onInput={(e) => setQ((e.target as HTMLInputElement).value)} />
+      <ul class="picker">
+        {results.map((r) => (
+          <li>
+            <button onClick={() => onPick(r)}>
+              <span>{r.name}</span>
+              <span class="muted small">
+                {[r.equipment, r.primary_muscles.join(", ")].filter(Boolean).join(" · ")}
+                {r.times_logged ? ` · logged ${r.times_logged}×` : ""}
+              </span>
+            </button>
+          </li>
+        ))}
+        {results.length === 0 && <li class="muted small">No matches</li>}
+      </ul>
+    </Sheet>
   );
 }

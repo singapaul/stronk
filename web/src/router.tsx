@@ -30,11 +30,12 @@ export function match(pattern: string, path: string): Record<string, string> | n
   return params;
 }
 
-export function Link(props: { href: string; class?: string; children: preact.ComponentChildren }) {
+export function Link(props: { href: string; class?: string; current?: boolean; children: preact.ComponentChildren }) {
   return (
     <a
       href={props.href}
       class={props.class}
+      aria-current={props.current ? "page" : undefined}
       onClick={(e) => {
         if (e.metaKey || e.ctrlKey) return;
         e.preventDefault();

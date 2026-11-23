@@ -187,6 +187,9 @@ describe("dev sign-in", () => {
     expect(res.status).toBe(302);
     const cookie = cookieHeader(res);
     expect(await (await dev.app.request("/auth/me", { headers: { cookie } })).json()).toEqual({ email: "dev@example.com" });
+    expect((await dev.app.request("/auth/dev?next=/history/3")).headers.get("location")).toBe("/history/3");
+    expect((await dev.app.request("/auth/dev?next=//evil.example")).headers.get("location")).toBe("/");
+    expect((await dev.app.request("/auth/dev?next=https://evil.example")).headers.get("location")).toBe("/");
     const prod = testApp({ env: { DEV_LOGIN_EMAIL: "dev@example.com", NODE_ENV: "production" } });
     expect((await prod.app.request("/auth/dev")).status).toBe(404);
   });

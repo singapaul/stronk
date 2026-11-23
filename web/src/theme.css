@@ -1,0 +1,64 @@
+/*
+  stronk theme: dealt by taste-skill 2.5.1 (start.mjs, page software, trade saas), never picked by taste.
+  - palette  white-mint-tiles: a white ground and near-black ink keep the log neutral and readable
+             under gym lighting; the one mint accent marks state (a done set, progress, the timer).
+  - type     funnel: Funnel Display (headings) + Funnel Sans (text) + DM Mono (numbers), self-hosted.
+  - radius   soft; buttons dealt "pill"; mark dealt "ring".
+  - grades   light = the dealt palette; dark = the dealt inverse set (--p-inv-*), chosen by the phone
+             (prefers-color-scheme), never by scrolling.
+  The :root palette block below is as start.mjs printed it.
+*/
+@import "@fontsource-variable/funnel-display/wght.css";
+@import "@fontsource-variable/funnel-sans/wght.css";
+@import "@fontsource/dm-mono/400.css";
+@import "@fontsource/dm-mono/500.css";
+
+:root {
+  --p-bg: #ffffff; --p-surface: #f3f3f3; --p-ink: #232323; --p-muted: #686868;
+  --p-accent: #a1ffcb; --p-accent-ink: #232323; --p-action: #232323; --p-action-ink: #ffffff;
+  --p-inv-bg: #232323; --p-inv-surface: #303030; --p-inv-ink: #ffffff; --p-inv-muted: #a4a4a4;
+  --p-inv-accent: #a1ffcb; --p-inv-accent-ink: #232323; --p-inv-action: #a1ffcb; --p-inv-action-ink: #232323;
+  --font-display: "Funnel Display Variable", "Funnel Display", system-ui, sans-serif;
+  --font-text: "Funnel Sans Variable", "Funnel Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --display-weight: 400;
+  --display-tracking: -0.03em;
+}
+
+/* Grounds (the names the motion layer reads). */
+:root {
+  --bg: var(--p-bg); --surface: var(--p-surface); --ink: var(--p-ink); --muted: var(--p-muted);
+  --accent: var(--p-accent); --accent-ink: var(--p-accent-ink); --card: var(--p-bg);
+  --action: var(--p-action); --action-ink: var(--p-action-ink);
+  --line: color-mix(in oklab, var(--ink) 11%, transparent);
+  --line-strong: color-mix(in oklab, var(--ink) 20%, transparent);
+  --done: color-mix(in oklab, var(--accent) 38%, var(--bg));
+  --danger: #b42318;
+  --warn: #8a5a00;
+  --warn-bg: #fff4d6;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: var(--p-inv-bg); --surface: var(--p-inv-surface); --ink: var(--p-inv-ink); --muted: var(--p-inv-muted);
+    --accent: var(--p-inv-accent); --accent-ink: var(--p-inv-accent-ink); --card: var(--p-inv-surface);
+    --action: var(--p-inv-action); --action-ink: var(--p-inv-action-ink);
+    --line: color-mix(in oklab, var(--ink) 14%, transparent);
+    --line-strong: color-mix(in oklab, var(--ink) 26%, transparent);
+    --done: color-mix(in oklab, var(--accent) 16%, var(--surface));
+    --danger: #ff8a80;
+    --warn: #ffd27a;
+    --warn-bg: #3a2f14;
+    color-scheme: dark;
+  }
+}
+
+/* Rhythm, radius (soft; pill buttons), type scale sized for a phone app. */
+:root {
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+  --r-sm: 8px; --r-md: 12px; --r-lg: 20px; --r-btn: 999px;
+  --btn-h: 44px; --btn-h-lg: 52px; --tap: 44px;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --t-h1: 30px; --t-h2: 20px; --t-h3: 17px; --t-body: 16px; --t-small: 14px; --t-label: 13px; --t-stat: 34px; --t-clock: 64px;
+  --gut: 16px; --tabs-h: 64px; --maxw: 640px;
+}
