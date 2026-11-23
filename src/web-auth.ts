@@ -176,7 +176,9 @@ export function webAuthRoutes(deps: WebAuthDeps) {
   app.get("/dev", (c) => {
     if (!deps.devEmail || !deps.sessionSecret) return c.json({ error: "Not found" }, 404);
     setSession(c, deps, deps.devEmail);
-    return c.redirect("/");
+    // Dev only: land on a given page (same-site paths only), so browser checks can open any screen signed in.
+    const next = c.req.query("next") ?? "/";
+    return c.redirect(next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/");
   });
 
   app.get("/me", (c) => {
